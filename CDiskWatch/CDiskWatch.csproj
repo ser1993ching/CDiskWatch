@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>CDiskWatch</RootNamespace>
+    <AssemblyName>CDiskWatch</AssemblyName>
+    <!-- 应用清单：comctl32 v6 视觉样式 + 管理员权限（VSS/USN/系统文件归因需要） -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 应用图标（由 tools/make_icon.py 生成） -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- 源文件为 UTF-8（防系统 GBK 代码页导致中文字面量乱码） -->
+    <CodePage>65001</CodePage>
+    <!-- 体积/内存优化 -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <!-- 关闭 NU1608 等无关提示，保持构建干净 -->
+    <MSBuildWarningsAsMessages />
+  </PropertyGroup>
+
+  <!-- 托盘状态图标（绿/黄/橙/红）与应用图标随输出一起发布 -->
+  <ItemGroup>
+    <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="icon-ok.ico;icon-warn.ico;icon-high.ico;icon-crit.ico"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- 内存优化：GC 尽量保守地保留内存（扫描后尽快把页还给系统） -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="9" />
+    <RuntimeHostConfigurationOption Include="System.GC.RetainVM" Value="false" />
+  </ItemGroup>
+
+</Project>

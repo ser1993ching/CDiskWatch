@@ -1,7 +1,8 @@
-param(
+﻿param(
   [string]$Exe = "CDiskWatch/bin/Release/net8.0-windows/CDiskWatch.exe",
   [string]$Lang = "en-US",
-  [int]$Pages = 7
+  [int]$Pages = 7,
+  [string]$OutDir = ""
 )
 
 # 多语言界面回归截图：启动 --lang 指定语言，用 ←/→ 遍历页签逐页截图。
@@ -48,7 +49,9 @@ function Shot($name) {
   $hdc = $g.GetHdc()
   [void][K]::PrintWindow($script:h, $hdc, 0)
   $g.ReleaseHdc($hdc)
-  $file = Join-Path $env:TEMP $name
+  $dir = if ($OutDir) { $OutDir } else { $env:TEMP }
+  if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+  $file = Join-Path $dir $name
   $bmp.Save($file, [System.Drawing.Imaging.ImageFormat]::Png)
   $g.Dispose(); $bmp.Dispose()
   Write-Output ("shot " + $file)

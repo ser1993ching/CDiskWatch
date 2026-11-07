@@ -247,11 +247,7 @@ public static class Scanner
     static void MeasureRec(char[] pathBuf, int pathLen, IntPtr findBuf, IntPtr patBuf, char[] patChars,
                            ref long total, ref int unreadable)
     {
-        int plen = 0;
-        for (int i = 0; i < pathLen && plen < patChars.Length - 3; i++) patChars[plen++] = pathBuf[i];
-        patChars[plen++] = '*';
-        patChars[plen] = ' ';
-        Marshal.Copy(patChars, 0, patBuf, plen + 1);
+        BuildSearchPattern(pathBuf, pathLen, patChars, patBuf);
 
         IntPtr h = Win32.FindFirstFileW(patBuf, findBuf);
         if (h == InvalidHandleValue) { unreadable++; return; }
@@ -260,7 +256,7 @@ public static class Scanner
             do
             {
                 uint attr = (uint)Marshal.ReadInt32(findBuf, OffAttributes);
-                int nameLen = MeasuredNameLength(findBuf);
+                int nameLen = FileNameLength(findBuf);
                 if (nameLen == 0) continue;
                 if (nameLen <= 2 && Marshal.ReadInt16(findBuf, OffFileName) == '.' ) continue;   // "." / ".."
 
@@ -268,7 +264,7 @@ public static class Scanner
                 {
                     if ((attr & FileAttributeReparsePoint) != 0) continue;
                     if (pathLen + nameLen + 1 >= pathBuf.Length) { unreadable++; continue; }
-                    CopyFindName(findBuf, nameLen, pathBuf, pathLen);
+                    CopyFileName(findBuf, nameLen, new Span<char>(pathBuf, pathLen, nameLen));
                     pathBuf[pathLen + nameLen] = (char)92;
                     MeasureRec(pathBuf, pathLen + nameLen + 1, findBuf, patBuf, patChars, ref total, ref unreadable);
                     continue;
@@ -285,17 +281,24 @@ public static class Scanner
         finally { Win32.FindClose(h); }
     }
 
-    static unsafe int MeasuredNameLength(IntPtr buf)
+    static unsafe int FileNameLength(IntPtr buf)
     {
-        var span = new ReadOnlySpan<char>((char*)(buf + OffFileName), 260);
-        int idx = span.IndexOf(' ');
-        return idx < 0 ? 260 : idx;
+        var name = new ReadOnlySpan<char>((char*)(buf + OffFileName), 260);
+        int length = name.IndexOf('\0');
+        return length < 0 ? 260 : length;
     }
 
-    static unsafe void CopyFindName(IntPtr buf, int nameLen, char[] dest, int destOffset)
+    static unsafe void CopyFileName(IntPtr buf, int nameLen, Span<char> destination)
     {
-        var src = new ReadOnlySpan<char>((char*)(buf + OffFileName), nameLen);
-        src.CopyTo(new Span<char>(dest, destOffset, nameLen));
+        new ReadOnlySpan<char>((char*)(buf + OffFileName), nameLen).CopyTo(destination);
+    }
+
+    static void BuildSearchPattern(char[] path, int pathLen, char[] pattern, IntPtr nativePattern)
+    {
+        Array.Copy(path, pattern, pathLen);
+        pattern[pathLen] = '*';
+        pattern[pathLen + 1] = '\0';
+        Marshal.Copy(pattern, 0, nativePattern, pathLen + 2);
     }
 
     sealed class ScanContext
@@ -371,11 +374,7 @@ public static class Scanner
             if (ct.IsCancellationRequested) { _res.Error = Loc.T("cli.scanCancelled"); return; }
 
             // 构造搜索模式 "<当前路径>*"
-            int plen = 0;
-            for (int i = 0; i < savedLen && plen < _patChars.Length - 3; i++) _patChars[plen++] = _path[i];
-            _patChars[plen++] = '*';
-            _patChars[plen] = '\0';
-            Marshal.Copy(_patChars, 0, _patBuf, plen + 1);
+            BuildSearchPattern(_path, savedLen, _patChars, _patBuf);
 
             IntPtr h = Win32.FindFirstFileW(_patBuf, _findBuf);
             if (h == InvalidHandleValue)
@@ -396,9 +395,9 @@ public static class Scanner
                 do
                 {
                     uint attr = (uint)Marshal.ReadInt32(_findBuf, OffAttributes);
-                    int nameLen = NameLength(_findBuf);
+                    int nameLen = FileNameLength(_findBuf);
                     if (nameLen == 0) continue;
-                    CopyName(_findBuf, nameLen);
+                    CopyFileName(_findBuf, nameLen, _nameBuf);
                     // 只跳过 "." 与 ".."，不能漏掉 .gitignore 之类的点开头文件
                     if (nameLen <= 2 && _nameBuf[0] == '.') continue;
 
@@ -519,20 +518,6 @@ public static class Scanner
                 if (next != '\\' && next != ':') return false;
             }
             return true;
-        }
-
-        static unsafe int NameLength(IntPtr buf)
-        {
-            var span = new ReadOnlySpan<char>((char*)(buf + OffFileName), 260);
-            int idx = span.IndexOf((char)0);
-            return idx < 0 ? 260 : idx;
-        }
-
-        /// <summary>把原生缓冲区里的文件名复制到复用缓冲（供后续比较/拼接）。</summary>
-        unsafe void CopyName(IntPtr buf, int nameLen)
-        {
-            var span = new ReadOnlySpan<char>((char*)(buf + OffFileName), nameLen);
-            span.CopyTo(_nameBuf);
         }
 
         static unsafe bool IsSystemFileName(IntPtr buf, int nameLen)

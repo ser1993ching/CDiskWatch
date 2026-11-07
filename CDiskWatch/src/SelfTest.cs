@@ -208,10 +208,8 @@ public static class SelfTest
         {
             Directory.CreateDirectory(mDir);
             File.WriteAllBytes(Path.Combine(mDir, "x.bin"), new byte[4096]);
-            long measured = AdviceEngine.MeasureDir(mDir);
-            Check(measured >= 4096, "建议：目录精确测量可用", "实际 " + measured);
-            long native = Scanner.MeasureTree(mDir, out int unreadable);
-            Check(native == measured, "测量：原生遍历与旧实现结果一致", $"原生={native} 旧={measured} 不可读={unreadable}");
+            long measured = Scanner.MeasureTree(mDir, out int unreadable);
+            Check(measured == 4096 && unreadable == 0, "测量：目录精确大小正确", $"实际={measured} 不可读={unreadable}");
         }
         finally { try { Directory.Delete(mDir, true); } catch { } }
 

@@ -12,7 +12,7 @@
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $proj = Join-Path $root "CDiskWatch\CDiskWatch.csproj"
-$tmp = "E:\code\_tmp_publish_cdw"
+$tmp = Join-Path $env:TEMP "CDiskWatch_publish"
 $out = Join-Path $root "publish\win-x64"
 
 Write-Host "== 1/4 构建 Release ==" -ForegroundColor Cyan

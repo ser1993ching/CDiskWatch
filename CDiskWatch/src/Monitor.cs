@@ -144,10 +144,23 @@ public static class Monitor
 
                 var res = Scanner.Scan(opt, CancellationToken.None);
 
+                if (!res.IsComplete)
+                {
+                    string reason = res.Error.Length > 0
+                        ? res.Error
+                        : $"unreadable directories: {res.UnreadableDirs}, overlong paths: {res.PathTooLongCount}";
+                    Status = Loc.F("status.doneWithWarn", reason);
+                    StatusKindNow = StatusKind.Failed;
+                    // Avoid retrying every second after the daily scan time has passed.
+                    _lastAutoScanDate = DateTime.Now.Date;
+                    ScheduleNext();
+                    return; // Never persist partial data or derive alerts from it.
+                }
+
                 Status = Loc.T("status.readingSys");
                 StatusKindNow = StatusKind.Working;
                 OnStateChanged?.Invoke();
-                var shadow = SystemUsage.QueryShadow();
+                var shadow = SystemUsage.QueryShadow(Cfg.Drive);
                 Shadow = shadow;
 
                 var snap = Snapshot.FromScan(res, shadow.UsedBytes);

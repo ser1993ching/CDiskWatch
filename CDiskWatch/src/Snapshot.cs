@@ -108,7 +108,7 @@ public sealed class Snapshot
     {
         string? dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-        string tmp = path + ".tmp";
+        string tmp = path + ".tmp-" + Guid.NewGuid().ToString("N");
         using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
         using (var gz = new GZipStream(fs, CompressionLevel.Fastest))
         using (var w = new BinaryWriter(gz, System.Text.Encoding.UTF8, leaveOpen: true))
@@ -151,24 +151,24 @@ public sealed class Snapshot
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var gz = new GZipStream(fs, CompressionMode.Decompress);
             using var r = new BinaryReader(gz, System.Text.Encoding.UTF8);
-            if (r.ReadUInt32() != Magic) return null;
-            int ver = r.ReadInt32();
-            if (ver > Version) return null;
+            var header = SnapHeader.Read(r);
+            if (header == null) return null;
+            int ver = header.Version;
             var s = new Snapshot
             {
-                Time = new DateTimeOffset(r.ReadInt64(), TimeSpan.Zero),
-                Drive = r.ReadString(),
-                TotalBytes = r.ReadInt64(),
-                FreeBytes = r.ReadInt64(),
-                UsedBytes = r.ReadInt64(),
-                LogicalBytes = r.ReadInt64(),
-                UnaccountedBytes = r.ReadInt64(),
-                FileCount = r.ReadInt64(),
-                DirCount = r.ReadInt64(),
-                CacheBytes = r.ReadInt64(),
-                TempBytes = r.ReadInt64(),
-                ShadowUsedBytes = r.ReadInt64(),
-                HardlinkBytes = r.ReadInt64(),
+                Time = header.Time,
+                Drive = header.Drive,
+                TotalBytes = header.TotalBytes,
+                FreeBytes = header.FreeBytes,
+                UsedBytes = header.UsedBytes,
+                LogicalBytes = header.LogicalBytes,
+                UnaccountedBytes = header.UnaccountedBytes,
+                FileCount = header.FileCount,
+                DirCount = header.DirCount,
+                CacheBytes = header.CacheBytes,
+                TempBytes = header.TempBytes,
+                ShadowUsedBytes = header.ShadowUsedBytes,
+                HardlinkBytes = header.HardlinkBytes,
             };
             for (int i = 0; i < Cat.Count; i++) { s.CatBytes[i] = r.ReadInt64(); s.CatCounts[i] = r.ReadInt64(); }
             int nd = r.ReadInt32();
@@ -248,6 +248,7 @@ public sealed class Snapshot
 /// </summary>
 public sealed class SnapHeader
 {
+    internal int Version;
     public DateTimeOffset Time;
     public string Drive = "C";
     public long TotalBytes;
@@ -271,26 +272,32 @@ public sealed class SnapHeader
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var gz = new GZipStream(fs, CompressionMode.Decompress);
             using var r = new BinaryReader(gz, System.Text.Encoding.UTF8);
-            if (r.ReadUInt32() != Snapshot.Magic) return null;
-            int ver = r.ReadInt32();
-            if (ver > Snapshot.Version) return null;
-            return new SnapHeader
-            {
-                Time = new DateTimeOffset(r.ReadInt64(), TimeSpan.Zero),
-                Drive = r.ReadString(),
-                TotalBytes = r.ReadInt64(),
-                FreeBytes = r.ReadInt64(),
-                UsedBytes = r.ReadInt64(),
-                LogicalBytes = r.ReadInt64(),
-                UnaccountedBytes = r.ReadInt64(),
-                FileCount = r.ReadInt64(),
-                DirCount = r.ReadInt64(),
-                CacheBytes = r.ReadInt64(),
-                TempBytes = r.ReadInt64(),
-                ShadowUsedBytes = r.ReadInt64(),
-                HardlinkBytes = r.ReadInt64(),
-            };
+            return Read(r);
         }
         catch { return null; }
+    }
+
+    internal static SnapHeader? Read(BinaryReader reader)
+    {
+        if (reader.ReadUInt32() != Snapshot.Magic) return null;
+        int version = reader.ReadInt32();
+        if (version > Snapshot.Version) return null;
+        return new SnapHeader
+        {
+            Version = version,
+            Time = new DateTimeOffset(reader.ReadInt64(), TimeSpan.Zero),
+            Drive = reader.ReadString(),
+            TotalBytes = reader.ReadInt64(),
+            FreeBytes = reader.ReadInt64(),
+            UsedBytes = reader.ReadInt64(),
+            LogicalBytes = reader.ReadInt64(),
+            UnaccountedBytes = reader.ReadInt64(),
+            FileCount = reader.ReadInt64(),
+            DirCount = reader.ReadInt64(),
+            CacheBytes = reader.ReadInt64(),
+            TempBytes = reader.ReadInt64(),
+            ShadowUsedBytes = reader.ReadInt64(),
+            HardlinkBytes = reader.ReadInt64(),
+        };
     }
 }

@@ -10,7 +10,7 @@ public static class Store
 
     public static void EnsureDir() => Directory.CreateDirectory(HistoryDir);
 
-    public static string NameOf(DateTimeOffset t) => t.ToLocalTime().ToString("yyyyMMdd-HHmmss");
+    public static string NameOf(DateTimeOffset t) => t.ToLocalTime().ToString("yyyyMMdd-HHmmss-fffffff");
 
     public static string SavePath(DateTimeOffset t) => Path.Combine(HistoryDir, "snap-" + NameOf(t) + ".snap");
 
@@ -63,28 +63,27 @@ public static class Store
 
     public static Snapshot? Load(string path) => Snapshot.Load(path);
 
-    /// <summary>最新一份快照。</summary>
-    public static Snapshot? Latest()
+    /// <summary>按时间倒序读取最近的有效快照，自动跳过损坏文件。</summary>
+    static List<Snapshot> LoadRecent(int count)
     {
+        var result = new List<Snapshot>(count);
         var files = ListFiles();
-        for (int i = files.Count - 1; i >= 0; i--)
+        for (int i = files.Count - 1; i >= 0 && result.Count < count; i--)
         {
-            var s = Snapshot.Load(files[i]);
-            if (s != null) return s;
+            var snapshot = Snapshot.Load(files[i]);
+            if (snapshot != null) result.Add(snapshot);
         }
-        return null;
+        return result;
     }
 
-    /// <summary>最新一份的前一份（用于日对比）。</summary>
+    /// <summary>最新一份快照。</summary>
+    public static Snapshot? Latest() => LoadRecent(1).FirstOrDefault();
+
+    /// <summary>最新一份有效快照的前一份（用于日对比）。</summary>
     public static Snapshot? Previous()
     {
-        var files = ListFiles();
-        for (int i = files.Count - 2; i >= 0; i--)
-        {
-            var s = Snapshot.Load(files[i]);
-            if (s != null) return s;
-        }
-        return null;
+        var recent = LoadRecent(2);
+        return recent.Count > 1 ? recent[1] : null;
     }
 
     /// <summary>基线（最早的一份快照）。</summary>

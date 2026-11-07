@@ -39,14 +39,21 @@ public static class SystemUsage
     /// 查询卷影副本 / 系统还原点占用（只读查询，不做任何清理）。
     /// 优先用 CIM（属性名稳定），失败时退回 vssadmin 文本解析。
     /// </summary>
-    public static ShadowInfo QueryShadow()
+    public static ShadowInfo QueryShadow(string drive = "C")
     {
         var info = new ShadowInfo();
         try
         {
+            char driveLetter = string.IsNullOrWhiteSpace(drive) ? 'C' : char.ToUpperInvariant(drive.Trim()[0]);
+            if (driveLetter < 'A' || driveLetter > 'Z')
+                throw new ArgumentException("Invalid drive letter.", nameof(drive));
+            string driveSpec = driveLetter + ":";
             string ps = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; " +
-                        "$s = Get-CimInstance Win32_ShadowStorage -ErrorAction SilentlyContinue | Select-Object -First 1; " +
-                        "$c = @(Get-CimInstance Win32_ShadowCopy -ErrorAction SilentlyContinue).Count; " +
+                        "$letter = '" + driveSpec + "'; " +
+                        "$v = Get-CimInstance Win32_Volume -Filter \"DriveLetter='$letter'\" -ErrorAction Stop; " +
+                        "if (-not $v) { throw 'Target volume was not found.' }; " +
+                        "$s = Get-CimInstance Win32_ShadowStorage -ErrorAction Stop | Where-Object { $_.Volume -eq $v.DeviceID } | Select-Object -First 1; " +
+                        "$c = @(Get-CimInstance Win32_ShadowCopy -ErrorAction Stop | Where-Object { $_.VolumeName -eq $v.DeviceID }).Count; " +
                         "if ($s) { [pscustomobject]@{ Used=[int64]$s.UsedSpace; Allocated=[int64]$s.AllocatedSpace; Count=$c } | ConvertTo-Json -Compress } " +
                         "else { [pscustomobject]@{ Used=0; Allocated=0; Count=$c } | ConvertTo-Json -Compress }";
             string outp = RunProcess("powershell.exe",
@@ -72,7 +79,7 @@ public static class SystemUsage
         // 兜底：vssadmin 文本（顺序解析：先「已使用」，后「已分配」）
         try
         {
-            string outp = RunProcess("vssadmin.exe", "list shadowstorage", 20_000, null);
+            string outp = RunProcess("vssadmin.exe", "list shadowstorage /for=" + driveSpec, 20_000, null);
             info.Raw = outp;
             var vals = ParseSizes(outp);
             if (vals.Count > 0)

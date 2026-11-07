@@ -293,29 +293,32 @@ public static class Program
 
     public static void ToggleAutoStart()
     {
-        _cfg.AutoStart = !_cfg.AutoStart;
+        bool enable = !_cfg.AutoStart;
         try
         {
             using var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
-            if (k == null)
-            {
-                _cfg.AutoStart = !_cfg.AutoStart;   // 回滚
-                Tray.Notify(Loc.T("app.title"), Loc.T("msg.autoStartFailed"));
-                return;
-            }
-            if (_cfg.AutoStart)
+            if (k == null) throw new InvalidOperationException("Unable to open the current-user Run registry key.");
+
+            if (enable)
             {
                 string exe = AppIcon.ExePath;
-                if (!string.IsNullOrEmpty(exe)) k.SetValue("CDiskWatch", "\"" + exe + "\"");
+                if (string.IsNullOrWhiteSpace(exe))
+                    throw new InvalidOperationException("The application executable path is unavailable.");
+                k.SetValue("CDiskWatch", "\\"" + exe + "\\"");
             }
             else
             {
                 k.DeleteValue("CDiskWatch", throwOnMissingValue: false);
             }
+
+            _cfg.AutoStart = enable;
+            ConfigStore.Save(_cfg);
+            Tray.Notify(Loc.T("app.title"), Loc.T(enable ? "msg.autoStartOn" : "msg.autoStartOff"));
         }
-        catch { }
-        ConfigStore.Save(_cfg);
-        Tray.Notify(Loc.T("app.title"), Loc.T(_cfg.AutoStart ? "msg.autoStartOn" : "msg.autoStartOff"));
+        catch
+        {
+            Tray.Notify(Loc.T("app.title"), Loc.T("msg.autoStartFailed"));
+        }
     }
 
     public static void OpenDataDir()

@@ -75,6 +75,18 @@ public static class SelfTest
         // ===== 格式化 =====
         Check(Fmt.Bytes(1L << 30) == "1.00 GB", "格式化：1GB");
         Check(Fmt.Bytes(-(1L << 20)) == "-1.00 MB", "格式化：负值");
+
+        // ===== 扫描完整性：不完整结果不能进入快照历史 =====
+        var scanQuality = new ScanResult();
+        Check(scanQuality.IsComplete, "扫描质量：无错误结果视为完整");
+        scanQuality.UnreadableDirs = 1;
+        Check(!scanQuality.IsComplete, "扫描质量：不可读目录使结果不完整");
+        scanQuality.UnreadableDirs = 0;
+        scanQuality.PathTooLongCount = 1;
+        Check(!scanQuality.IsComplete, "扫描质量：超长路径使结果不完整");
+        scanQuality.PathTooLongCount = 0;
+        scanQuality.Error = "enumeration failed";
+        Check(!scanQuality.IsComplete, "扫描质量：根级错误使结果不完整");
         Check(Fmt.Pct(0.315) == "31.5%", "格式化：百分比");
 
         // ===== 快照往返 =====

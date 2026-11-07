@@ -10,7 +10,7 @@ public static class Store
 
     public static void EnsureDir() => Directory.CreateDirectory(HistoryDir);
 
-    public static string NameOf(DateTimeOffset t) => t.ToLocalTime().ToString("yyyyMMdd-HHmmss");
+    public static string NameOf(DateTimeOffset t) => t.ToLocalTime().ToString("yyyyMMdd-HHmmss-fffffff");
 
     public static string SavePath(DateTimeOffset t) => Path.Combine(HistoryDir, "snap-" + NameOf(t) + ".snap");
 

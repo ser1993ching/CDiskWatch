@@ -108,7 +108,7 @@ public sealed class Snapshot
     {
         string? dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-        string tmp = path + ".tmp";
+        string tmp = path + ".tmp-" + Guid.NewGuid().ToString("N");
         using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
         using (var gz = new GZipStream(fs, CompressionLevel.Fastest))
         using (var w = new BinaryWriter(gz, System.Text.Encoding.UTF8, leaveOpen: true))

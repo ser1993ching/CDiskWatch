@@ -292,3 +292,41 @@ cli.elevateFailed	提权失败，将缺少卷影副本信息。	管理者権限�
 cli.scanCancelled	扫描已取消	スキャンを中止しました	Scan cancelled
 cli.readDiskFailed	读取磁盘信息失败：{0}	ディスク情報の取得に失敗：{0}	Failed to read disk info: {0}
 cli.analyzeFailed	分析失败：{0}	分析に失敗しました：{0}	Analysis failed: {0}
+tab.folderAnalysis	大文件夹	大容量フォルダー	Large folders
+action.folderScan	分析文件夹	フォルダー分析	Analyze folders
+folder.hint	按占用列出开发依赖缓存、项目构建产物、微信/QQ 数据和个人文件夹。双击可在资源管理器中打开；本软件只分析，不会删除任何文件。	開発キャッシュ、ビルド生成物、WeChat/QQ データ、個人フォルダーを容量順に表示します。ダブルクリックでエクスプローラーを開きます。削除は行いません。	Largest developer caches, build outputs, WeChat/QQ data and personal folders. Double-click to open in Explorer. This tool never deletes files.
+folder.scanning	正在分析常见缓存、聊天数据和用户文件夹，请稍候……	キャッシュ、チャットデータ、ユーザーフォルダーを分析中です……	Analyzing common caches, chat data and user folders…
+folder.error	分析失败：{0}	分析に失敗しました：{0}	Analysis failed: {0}
+folder.startHint	点击右上角“分析文件夹”开始分析。首次分析可能需要一些时间。	右上の「フォルダー分析」をクリックして開始します。初回は時間がかかる場合があります。	Click Analyze folders in the top right to start. The first analysis may take a little while.
+folder.empty	没有发现超过 64 MB 的候选文件夹。	64 MB を超える候補フォルダーは見つかりませんでした。	No candidate folders larger than 64 MB were found.
+folder.summary	发现 {0} 个大文件夹 · 合计 {1}（仅统计独立目录）	大容量フォルダー {0} 件 · 合計 {1}（重複しないディレクトリのみ）	Found {0} large folders · {1} total (independent folders only)
+folder.col.kind	类型	種類	Type
+folder.col.path	文件夹路径	フォルダーパス	Folder path
+folder.col.size	占用	容量	Size
+folder.col.risk	删除风险	削除リスク	Delete risk
+folder.partial	（部分不可读，显示为下限）	（一部読み取り不可・下限値）	(partially unreadable; lower bound)
+folder.note	建议：{0} 可能影响：{1}	推奨：{0} 影響：{1}	Advice: {0} Potential impact: {1}
+folder.kind.devCache	开发依赖缓存	開発依存キャッシュ	Developer dependency cache
+folder.kind.build	项目构建产物	プロジェクトのビルド生成物	Project build output
+folder.kind.chat	聊天软件数据	チャットアプリのデータ	Chat app data
+folder.kind.app	应用数据	アプリデータ	Application data
+folder.kind.personal	个人文件	個人ファイル	Personal files
+folder.kind.download	下载目录	ダウンロード	Downloads
+folder.risk.medium	中	中	Medium
+folder.risk.high	高	高	High
+folder.risk.critical	极高	非常に高い	Critical
+folder.advice.devCache	关闭相关开发工具后，优先用包管理器的缓存清理命令；不建议直接删除整个目录。	関連ツールを終了し、パッケージマネージャーのキャッシュ削除機能を優先してください。フォルダー全体の直接削除は推奨しません。	Close related tools and prefer the package manager's cache-clean command; do not delete the whole folder directly.
+folder.impact.devCache	可能需要重新下载依赖，离线构建和安装会受影响。	依存関係の再ダウンロードが必要になり、オフラインでのビルドやインストールに影響する場合があります。	Dependencies may need to be downloaded again; offline builds and installs may be affected.
+folder.advice.build	确认项目可重新还原和构建后，使用项目工具清理；不要删除项目源代码。	プロジェクトを再復元・再ビルドできることを確認し、開発ツールでクリーンしてください。ソースコードは削除しないでください。	After confirming the project can be restored and rebuilt, clean it with project tools; never remove source code.
+folder.impact.build	下次构建会重新生成，可能丢失本地构建产物或调试状态。	次回ビルドで再生成されますが、ローカルの生成物やデバッグ状態が失われる場合があります。	These files are regenerated on build, but local outputs or debugging state may be lost.
+folder.advice.chat	优先使用微信/QQ 自带的存储管理迁移或清理；先备份重要聊天记录和文件。	WeChat/QQ のストレージ管理で移行・整理し、重要な履歴やファイルは先にバックアップしてください。	Use WeChat/QQ storage management to move or clean data; back up important chats and files first.
+folder.impact.chat	可能永久丢失聊天记录、图片、视频、文件或登录数据，不建议手动删除。	チャット履歴、写真、動画、ファイル、ログイン情報が永久に失われる可能性があります。手動削除は推奨しません。	Chats, photos, videos, files or sign-in data may be permanently lost. Manual deletion is not recommended.
+folder.advice.app	优先在应用设置中清理或通过卸载程序管理；不要直接删除应用数据目录。	アプリ設定から整理するか、アンインストーラーを使用してください。アプリデータを直接削除しないでください。	Clean through the app's settings or its uninstaller; do not delete its data folder directly.
+folder.impact.app	可能丢失配置、登录状态、数据库、扩展或本地数据，应用可能无法正常启动。	設定、ログイン状態、データベース、拡張機能、ローカルデータが失われ、アプリが起動しなくなる場合があります。	Settings, sign-in state, databases, extensions or local data may be lost; the app may stop working.
+folder.advice.personal	双击打开逐项检查，确认已备份且不再需要后再由你手动处理。	ダブルクリックして内容を確認し、バックアップ済みで不要な場合のみ手動で整理してください。	Open and inspect the contents; only handle them manually after confirming they are backed up and no longer needed.
+folder.impact.personal	可能包含个人文档、照片、项目或唯一副本，程序无法判断其重要性。	個人文書、写真、プロジェクト、唯一のコピーが含まれる場合があります。重要性はプログラムでは判断できません。	May contain personal documents, photos, projects or the only copy; the program cannot determine their importance.
+folder.advice.download	检查安装包、压缩包和下载文件，确认可重新获取且不再需要后再手动处理。	インストーラー、アーカイブ、ダウンロードファイルを確認し、再取得可能で不要な場合のみ手動で整理してください。	Review installers, archives and downloads; only handle them manually if they can be reacquired and are no longer needed.
+folder.impact.download	可能删除唯一下载副本、离线安装包或工作资料。	ダウンロードの唯一のコピー、オフライン用インストーラー、作業資料を失う場合があります。	You may lose the only copy of a download, an offline installer or work files.
+folder.kind.extensions	已安装开发扩展	インストール済み開発拡張	Installed developer extensions
+folder.advice.extensions	在 VS Code 或对应 IDE 的扩展管理器中卸载不再使用的扩展，不要直接删除整个目录。	VS Code または IDE の拡張機能マネージャーから不要な拡張をアンインストールしてください。フォルダー全体を直接削除しないでください。	Uninstall unused extensions through VS Code or the IDE's extension manager; do not delete the whole folder directly.
+folder.impact.extensions	会移除已安装扩展，可能影响开发功能；重新安装需要下载，离线环境可能无法恢复。	インストール済み拡張が削除され、開発機能に影響します。再インストールにはダウンロードが必要で、オフラインでは復元できない場合があります。	Installed extensions will be removed and development features may be affected; reinstalling requires downloads and may be impossible offline.

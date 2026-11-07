@@ -1,6 +1,6 @@
 # AGENTS.md — C 盘容量监控（CDiskWatch）
 
-只读监控 C 盘的 Windows 桌面工具：`CDiskWatch.exe`（托盘常驻 + 7 页签自绘面板 + CLI 报告）。
+只读监控 C 盘的 Windows 桌面工具：`CDiskWatch.exe`（托盘常驻 + 8 页签自绘面板 + CLI 报告）。
 .NET 8 / `net8.0-windows` / WinExe / 单文件发布。**所有中文文档与注释都保持中文。**
 
 ## 红线（改代码前必读）

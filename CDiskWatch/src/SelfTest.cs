@@ -64,6 +64,10 @@ public static class SelfTest
         Check(Cat.ByExtension("") == FileCategory.Other, "分类：空扩展 → 其他");
         Check(Cat.IsCachePath("C:\\Users\\a\\AppData\\Local\\Google\\Chrome\\Cache"), "路径关键词：Cache 命中");
         Check(Cat.IsTempPath("C:\\Users\\a\\AppData\\Local\\Temp"), "路径关键词：Temp 命中");
+        Check(FolderAnalyzer.RiskOf(FolderKind.DevCache) == FolderRisk.Medium, "文件夹分析：开发缓存判为中风险");
+        Check(FolderAnalyzer.RiskOf(FolderKind.ChatData) == FolderRisk.Critical, "文件夹分析：聊天数据判为极高风险");
+        Check(FolderAnalyzer.RiskOf(FolderKind.Personal) == FolderRisk.High, "文件夹分析：个人文件判为高风险");
+        Check(FolderAnalyzer.RiskOf(FolderKind.Extensions) == FolderRisk.High, "文件夹分析：已安装扩展判为高风险");
 
         // ===== 层级与截断 =====
         Check(Scanner.LevelOf("C:\\") == 0, "层级：根目录 = 0");

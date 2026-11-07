@@ -35,6 +35,7 @@
 | **Snapshot repository** — GZip binary snapshots (baseline + one per day, ~117 KB each), kept for a year. | **快照仓库** —— GZip 二进制快照（基线 + 每日一份，约 117 KB），可留存一年。 |
 | **Three-level attribution** — what grew, broken down by directory, by file category and by individual file. | **三级归因** —— 涨了多少，按目录、文件类别、单个文件逐层拆开。 |
 | **15 file categories** — by extension and by path keyword (cache / temp / logs / dumps …). | **15 类文件分类** —— 按扩展名与路径关键字（缓存 / 临时 / 日志 / 转储……）。 |
+| **Large-folder analysis** — developer caches, build outputs, chat-app data and personal folders, with size, risk and double-click Explorer navigation. | **大文件夹分析** —— 识别开发缓存、构建产物、聊天数据和个人文件夹，显示占用与删除风险，双击定位；只给建议，不会自动删除。 |
 | **Cleanup suggestions** — 30 rules with risk level, star rating and a concrete tip; suggestions only, never actions. | **删除建议** —— 30 条规则，带风险等级、推荐星标与具体操作提示；只给建议，绝不代劳。 |
 | **Alerts** — free space, daily growth rate, new large files and system-file jumps, with a cool-down window. | **预警** —— 剩余空间、单日增长、新增大文件、系统文件异动，带冷却窗口避免刷屏。 |
 | **System-level usage** — shadow copies / restore points, `hiberfil.sys`, `pagefile.sys`, `swapfile.sys`, WinSxS. | **系统级占用** —— 卷影副本 / 还原点、休眠文件、虚拟内存、UWP 交换文件、WinSxS 组件存储。 |
@@ -44,7 +45,7 @@
 | **CLI & JSON report** — `--scan`, `--report`, `--report --format json`, `--winsxs`, `--selftest`, `--lang`. | **命令行与 JSON 报告** —— `--scan`、`--report`、`--report --format json`、`--winsxs`、`--selftest`、`--lang`。 |
 | **Read-only by construction** — an IL-level guard in the self-test fails the build if any delete/move API is ever called. | **只读红线** —— 自检用 IL 扫描断言"任何删除/移动类 API 一旦被调用即失败"。 |
 | **Zero dependencies** — pure Win32 P/Invoke + GDI, no WinForms/WPF/WebView/NuGet, no .NET runtime needed. | **零依赖** —— 纯 Win32 P/Invoke + GDI 自绘，无 WinForms/WPF/WebView/NuGet，**不需要安装 .NET 运行时**。 |
-| **Headless self-test** — 89 assertions including snapshot round-trip, font metrics and trilingual key/placeholder parity. | **无头自检** —— 89 项断言，含快照往返、字体测量与三语 key / 占位符一致性。 |
+| **Headless self-test** — 93 assertions including snapshot round-trip, font metrics and trilingual key/placeholder parity. | **无头自检** —— 93 项断言，含快照往返、字体测量与三语 key / 占位符一致性。 |
 
 ---
 

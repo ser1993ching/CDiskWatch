@@ -53,7 +53,7 @@ public sealed class MainWindow
     static readonly string[] PageNames =
     {
         Loc.T("tab.overview"), Loc.T("tab.dirs"), Loc.T("tab.files"), Loc.T("tab.delta"),
-        Loc.T("tab.cats"), Loc.T("tab.advice"), Loc.T("tab.history"),
+        Loc.T("tab.cats"), Loc.T("tab.advice"), Loc.T("tab.history"), Loc.T("tab.folderAnalysis"),
     };
 
     static readonly Col[][] Cols =
@@ -65,6 +65,7 @@ public sealed class MainWindow
         new[] { new Col(Loc.T("col.cat"), 0.16f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.size"), 0.16f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.count"), 0.12f, Theme.AlignRight, ColStyle.Muted), new Col(Loc.T("col.share"), 0.10f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.46f, Theme.AlignLeft, ColStyle.Bar) },
         new[] { new Col(Loc.T("col.path"), 0.52f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.size"), 0.12f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.risk"), 0.10f, Theme.AlignLeft, ColStyle.Tag), new Col(Loc.T("col.rule"), 0.26f, Theme.AlignLeft, ColStyle.Muted) },
         new[] { new Col(Loc.T("col.time"), 0.18f, Theme.AlignLeft, ColStyle.Muted), new Col(Loc.T("col.free"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.used"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.change"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.usage"), 0.37f, Theme.AlignLeft, ColStyle.Bar) },
+        new[] { new Col(Loc.T("folder.col.kind"), 0.15f, Theme.AlignLeft, ColStyle.Muted), new Col(Loc.T("folder.col.path"), 0.55f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("folder.col.size"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("folder.col.risk"), 0.15f, Theme.AlignLeft, ColStyle.Tag) },
     };
 
     static readonly uint[] LevelColors =
@@ -75,6 +76,7 @@ public sealed class MainWindow
     static readonly (string text, int action)[] Actions =
     {
         (Loc.T("action.dataDir"), 2), (Loc.T("action.copyReport"), 1), (Loc.T("action.rescan"), 0),
+        (Loc.T("action.folderScan"), 3),
     };
 
     // ===== 状态 =====
@@ -104,6 +106,10 @@ public sealed class MainWindow
     Win32.RECT _btnRescan, _btnCopy, _btnData;
     Win32.RECT _scrollTrack, _scrollThumb;
     readonly Win32.RECT[] _tabRc = new Win32.RECT[PageNames.Length];
+    Win32.RECT _btnFolder;
+    volatile bool _folderAnalyzing;
+    List<FolderUsage>? _folderResults;
+    string _folderError = "";
 
     IntPtr _fTitle, _fBig, _fSemi, _fMain, _fSub, _fSmall;
 
@@ -279,7 +285,7 @@ public sealed class MainWindow
     {
         int w = _w, h = _h, pad = _pad;
 
-        // ---- 顶栏按钮（右对齐排列：数据目录 / 复制报告 / 立即扫描）----
+        // ---- 顶栏按钮（右对齐排列：文件夹分析 / 数据目录 / 复制报告 / 立即扫描）----
         int btnH = S(38);
         int by = (_appBarH - btnH) / 2;
         int x = w - pad;
@@ -288,12 +294,15 @@ public sealed class MainWindow
             Theme.Measure(dc, _fSemi, Actions[2].text) + S(38),
             Theme.Measure(dc, _fSemi, Actions[1].text) + S(30),
             Theme.Measure(dc, _fSemi, Actions[0].text) + S(30),
+            Theme.Measure(dc, _fSemi, Actions[3].text) + S(30),
         };
         _btnRescan = new Win32.RECT { L = x - widths[0], T = by, R = x, B = by + btnH };
         x = _btnRescan.L - S(8);
         _btnCopy = new Win32.RECT { L = x - widths[1], T = by, R = x, B = by + btnH };
         x = _btnCopy.L - S(8);
         _btnData = new Win32.RECT { L = x - widths[2], T = by, R = x, B = by + btnH };
+        x = _btnData.L - S(8);
+        _btnFolder = new Win32.RECT { L = x - widths[3], T = by, R = x, B = by + btnH };
 
         // ---- Hero 卡片 ----
         int heroY = _appBarH + S(2);
@@ -330,7 +339,8 @@ public sealed class MainWindow
         ClampScroll();
     }
 
-    int RowHeight(Row r) => r.IsSection ? _secH : r.IsBlock ? S(64) : (r.Sub.Length > 0 ? _subRowH : _rowH);
+    int RowHeight(Row r) => r.IsSection ? _secH : r.IsBlock ? S(64)
+        : r.Sub.Length > 0 ? (_page == 7 ? S(82) : _subRowH) : _rowH;
 
     int ContentHeight()
     {
@@ -382,6 +392,7 @@ public sealed class MainWindow
             case 4: BuildCategories(s); break;
             case 5: BuildAdvice(); break;
             case 6: BuildHistory(); break;
+            case 7: BuildFolderAnalysis(); break;
         }
         _renderedVersion = Monitor.DataVersion;
         _layoutValid = false;
@@ -679,6 +690,68 @@ public sealed class MainWindow
         });
     }
 
+    void BuildFolderAnalysis()
+    {
+        _rows.Add(Block(Loc.T("folder.hint"), Theme.TextSub));
+        if (_folderAnalyzing) { _rows.Add(Single(Loc.T("folder.scanning"))); return; }
+        if (_folderError.Length > 0) { _rows.Add(Block(Loc.F("folder.error", _folderError), Theme.Bad)); return; }
+        if (_folderResults == null) { _rows.Add(Single(Loc.T("folder.startHint"))); return; }
+        if (_folderResults.Count == 0) { _rows.Add(Single(Loc.T("folder.empty"))); return; }
+
+        long total = 0;
+        foreach (var item in _folderResults) total += item.Bytes;
+        _rows.Add(Section(Loc.F("folder.summary", Fmt.Num(_folderResults.Count), Fmt.Bytes(total))));
+        foreach (var item in _folderResults)
+        {
+            string kind = item.Kind switch
+            {
+                FolderKind.DevCache => Loc.T("folder.kind.devCache"),
+                FolderKind.BuildOutput => Loc.T("folder.kind.build"),
+                FolderKind.ChatData => Loc.T("folder.kind.chat"),
+                FolderKind.AppData => Loc.T("folder.kind.app"),
+                FolderKind.Extensions => Loc.T("folder.kind.extensions"),
+                FolderKind.Downloads => Loc.T("folder.kind.download"),
+                _ => Loc.T("folder.kind.personal"),
+            };
+            string risk = item.Risk switch
+            {
+                FolderRisk.Critical => Loc.T("folder.risk.critical"),
+                FolderRisk.High => Loc.T("folder.risk.high"),
+                _ => Loc.T("folder.risk.medium"),
+            };
+            string advice = item.Kind switch
+            {
+                FolderKind.DevCache => Loc.T("folder.advice.devCache"),
+                FolderKind.BuildOutput => Loc.T("folder.advice.build"),
+                FolderKind.ChatData => Loc.T("folder.advice.chat"),
+                FolderKind.AppData => Loc.T("folder.advice.app"),
+                FolderKind.Extensions => Loc.T("folder.advice.extensions"),
+                FolderKind.Downloads => Loc.T("folder.advice.download"),
+                _ => Loc.T("folder.advice.personal"),
+            };
+            string impact = item.Kind switch
+            {
+                FolderKind.DevCache => Loc.T("folder.impact.devCache"),
+                FolderKind.BuildOutput => Loc.T("folder.impact.build"),
+                FolderKind.ChatData => Loc.T("folder.impact.chat"),
+                FolderKind.AppData => Loc.T("folder.impact.app"),
+                FolderKind.Extensions => Loc.T("folder.impact.extensions"),
+                FolderKind.Downloads => Loc.T("folder.impact.download"),
+                _ => Loc.T("folder.impact.personal"),
+            };
+            uint color = item.Risk == FolderRisk.Critical ? Theme.Bad
+                      : item.Risk == FolderRisk.High ? Theme.Warn : Theme.TextMain;
+            string size = Fmt.Bytes(item.Bytes) + (item.UnreadableDirs > 0 ? Loc.T("folder.partial") : "");
+            _rows.Add(new Row
+            {
+                Cells = new[] { kind, item.Path, size, risk },
+                Sub = Loc.F("folder.note", advice, impact),
+                TextColor = color,
+                Path = item.Path,
+            });
+        }
+    }
+
     void BuildHistory()
     {
         var hist = Monitor.History();
@@ -731,13 +804,15 @@ public sealed class MainWindow
 
         // 标题 + 副标题
         int tx = logo.R + S(12);
-        Theme.Text(hdc, _fTitle, Loc.T("app.title"), new Win32.RECT { L = tx, T = cy - S(22), R = tx + S(460), B = cy - S(2) }, Theme.TextMain, Theme.AlignLeft);
-        Theme.Text(hdc, _fSmall, Loc.T("app.subtitle"), new Win32.RECT { L = tx + S(1), T = cy + S(1), R = tx + S(620), B = cy + S(19) }, Theme.TextDim, Theme.AlignLeft);
+        int textRight = Math.Max(tx + S(120), _btnFolder.L - S(12));
+        Theme.Text(hdc, _fTitle, Loc.T("app.title"), new Win32.RECT { L = tx, T = cy - S(22), R = Math.Min(tx + S(460), textRight), B = cy - S(2) }, Theme.TextMain, Theme.AlignLeft);
+        Theme.Text(hdc, _fSmall, Loc.T("app.subtitle"), new Win32.RECT { L = tx + S(1), T = cy + S(1), R = Math.Min(tx + S(620), textRight), B = cy + S(19) }, Theme.TextDim, Theme.AlignLeft);
 
         DrawActionButton(hdc, _btnRescan, Actions[2].text, primary: true, enabled: !Monitor.Scanning, actionIndex: 0,
             labelOverride: Monitor.Scanning ? Loc.T("status.scanningShort") : null);
         DrawActionButton(hdc, _btnCopy, Actions[1].text, primary: false, enabled: Monitor.Latest != null, actionIndex: 1);
         DrawActionButton(hdc, _btnData, Actions[0].text, primary: false, enabled: true, actionIndex: 2);
+        DrawActionButton(hdc, _btnFolder, Actions[3].text, primary: false, enabled: true, actionIndex: 3);
     }
 
     void DrawActionButton(IntPtr hdc, in Win32.RECT rc, string text, bool primary, bool enabled, int actionIndex, string? labelOverride = null)
@@ -928,7 +1003,9 @@ public sealed class MainWindow
         if (selected) Theme.Fill(hdc, new Win32.RECT { L = band.L, T = y + S(4), R = band.L + S(3), B = y + h - S(4) }, Theme.Accent);
 
         int textTop = y + S(1);
-        int textBottom = r.Sub.Length > 0 ? y + h - S(20) : y + h - S(1);
+        int textBottom = r.Sub.Length > 0
+            ? y + h - S(_page == 7 ? 44 : 20)
+            : y + h - S(1);
 
         var cols = Cols[_page];
         int cx = _colX0;
@@ -985,9 +1062,15 @@ public sealed class MainWindow
         }
 
         if (r.Sub.Length > 0)
-            Theme.Text(hdc, _fSmall, r.Sub,
-                new Win32.RECT { L = _colX0, T = y + h - S(19), R = innerRight, B = y + h - S(2) },
-                Theme.TextDim, Theme.AlignLeft);
+        {
+            var subRc = new Win32.RECT
+            {
+                L = _colX0, T = y + h - S(_page == 7 ? 42 : 19),
+                R = innerRight, B = y + h - S(2)
+            };
+            if (_page == 7) Theme.TextWrap(hdc, _fSmall, r.Sub, subRc, Theme.TextDim);
+            else Theme.Text(hdc, _fSmall, r.Sub, subRc, Theme.TextDim, Theme.AlignLeft);
+        }
     }
 
     void DrawEmptyState(IntPtr hdc, string message)
@@ -1086,6 +1169,7 @@ public sealed class MainWindow
         if (hintRow >= 0 && hintRow < _rows.Count && !_rows[hintRow].IsSection) pathHint = _rows[hintRow].Path;
         string status = !string.IsNullOrEmpty(pathHint)
             ? Loc.F("status.path", pathHint)
+            : _page == 7 && _folderAnalyzing ? Loc.T("folder.scanning")
             : Monitor.Scanning ? Loc.T("status.scanning") : Monitor.Status;
         Theme.Text(hdc, _fSmall, status, new Win32.RECT { L = _statusRc.L + S(16), T = _statusRc.T, R = _statusRc.L + S(760), B = _statusRc.B }, Theme.TextSub, Theme.AlignLeft);
 
@@ -1166,6 +1250,7 @@ public sealed class MainWindow
         if (PtIn(_btnRescan, x, y)) return 0;
         if (PtIn(_btnCopy, x, y)) return 1;
         if (PtIn(_btnData, x, y)) return 2;
+        if (PtIn(_btnFolder, x, y)) return 3;
         return -1;
     }
 
@@ -1178,7 +1263,30 @@ public sealed class MainWindow
         _scroll = 0;
         _layoutValid = false;
         RebuildRows();
+        if (page == 7 && _folderResults == null && !_folderAnalyzing) StartFolderAnalysis();
         Win32.InvalidateRect(Hwnd, IntPtr.Zero, false);
+    }
+
+    void StartFolderAnalysis()
+    {
+        if (_folderAnalyzing) return;
+        _page = 7;
+        _scroll = 0;
+        _folderResults = null;
+        _folderError = "";
+        _folderAnalyzing = true;
+        RebuildRows();
+        Win32.InvalidateRect(Hwnd, IntPtr.Zero, false);
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            try { _folderResults = FolderAnalyzer.Scan(Monitor.Cfg.Drive); }
+            catch (Exception ex) { _folderError = ex.Message; }
+            finally
+            {
+                _folderAnalyzing = false;
+                Win32.PostMessageW(Hwnd, Win32.WM_APP_FOLDER_DONE, IntPtr.Zero, IntPtr.Zero);
+            }
+        });
     }
 
     void EnsureVisible(int index)
@@ -1220,6 +1328,7 @@ public sealed class MainWindow
                 case 0: Monitor.RunScan(true); break;
                 case 1: Program.CopyReport(); break;
                 case 2: Program.OpenDataDir(); break;
+                case 3: StartFolderAnalysis(); break;
             }
             Win32.InvalidateRect(Hwnd, IntPtr.Zero, false);
             return;
@@ -1418,6 +1527,10 @@ public sealed class MainWindow
                 }
             case Win32.WM_APP_SCAN_DONE:
                 OnDataChanged();
+                return IntPtr.Zero;
+            case Win32.WM_APP_FOLDER_DONE:
+                RebuildRows();
+                Win32.InvalidateRect(hwnd, IntPtr.Zero, false);
                 return IntPtr.Zero;
             case Win32.WM_APP_TRAY:
                 Tray.HandleTrayMessage(lParam);

@@ -28,11 +28,22 @@ public static class Cat
 {
     public const int Count = 15;
 
-    public static readonly string[] Names =
+    /// <summary>稳定 ID（与语言无关，写入快照/JSON，脚本可依赖）。显示名走 <see cref="Name"/>。</summary>
+    public static readonly string[] Ids =
     {
-        "视频", "图片", "音频", "文档", "压缩包", "安装包", "日志/转储", "缓存",
-        "数据库", "磁盘镜像", "开发产物", "软件包", "系统文件", "临时文件", "其他",
+        "video", "image", "audio", "doc", "archive", "installer", "log", "cache",
+        "db", "disk", "dev", "pkg", "sys", "temp", "other",
     };
+
+    /// <summary>类别显示名（跟随界面语言）。</summary>
+    public static string Name(int i) => Loc.T("cat." + Ids[i]);
+
+    /// <summary>类别颜色（#RRGGBB，供结构化输出使用）。</summary>
+    public static string HexColor(int i)
+    {
+        uint c = Colors[i];
+        return "#" + ((c & 0xFF).ToString("X2") + ((c >> 8) & 0xFF).ToString("X2") + ((c >> 16) & 0xFF).ToString("X2"));
+    }
 
     /// <summary>类别配色（0x00BBGGRR，与 GDI 的 COLORREF 一致）。</summary>
     /// <summary>类别配色（0x00BBGGRR，与 GDI 的 COLORREF 一致；浅色背景下足够饱和）。</summary>

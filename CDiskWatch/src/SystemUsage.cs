@@ -132,7 +132,7 @@ public static class SystemUsage
         }
         catch (Exception ex)
         {
-            return "分析失败: " + ex.Message;
+            return Loc.T("cli.analyzeFailed") + ": " + ex.Message;
         }
     }
 

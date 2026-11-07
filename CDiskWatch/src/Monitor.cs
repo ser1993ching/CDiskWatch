@@ -17,7 +17,11 @@ public static class Monitor
     public static List<AdviceCard> Advice = new();
 
     public static volatile bool Scanning;
-    public static volatile string Status = "尚未扫描";
+    /// <summary>状态阶段（用于给状态栏圆点上色，避免用文案做字符串比较）。</summary>
+    public enum StatusKind { Never = 0, Working = 1, Done = 2, Failed = 3 }
+
+    public static volatile string Status = Loc.T("hero.neverScanned");
+    public static volatile StatusKind StatusKindNow = StatusKind.Never;
     public static DateTimeOffset LastScanTime;
     public static double LastScanMs;
     public static long FreeBytes;
@@ -120,7 +124,8 @@ public static class Monitor
     {
         if (Interlocked.CompareExchange(ref _scanningFlag, 1, 0) != 0) return;
         Scanning = true;
-        Status = "正在扫描 " + Cfg.Drive + " 盘…";
+        Status = Loc.F("hero.scanningStatus", Cfg.Drive);
+        StatusKindNow = StatusKind.Working;
         OnStateChanged?.Invoke();
 
         var t = new Thread(() =>
@@ -139,7 +144,8 @@ public static class Monitor
 
                 var res = Scanner.Scan(opt, CancellationToken.None);
 
-                Status = "正在读取系统占用信息…";
+                Status = Loc.T("status.readingSys");
+                StatusKindNow = StatusKind.Working;
                 OnStateChanged?.Invoke();
                 var shadow = SystemUsage.QueryShadow();
                 Shadow = shadow;
@@ -147,7 +153,8 @@ public static class Monitor
                 var snap = Snapshot.FromScan(res, shadow.UsedBytes);
                 string scanError = res.Error;
                 double durationMs = res.DurationMs;
-                Status = "正在测量可优化目录…";
+                Status = Loc.T("status.measuring");
+                StatusKindNow = StatusKind.Working;
                 OnStateChanged?.Invoke();
                 snap.Advice = AdviceEngine.Measure(snap);
                 Store.Save(snap);
@@ -155,7 +162,8 @@ public static class Monitor
 
                 LastScanTime = snap.Time;
                 LastScanMs = durationMs;
-                Status = scanError.Length > 0 ? "扫描完成（有告警：" + scanError + "）" : "扫描完成";
+                Status = scanError.Length > 0 ? Loc.F("status.doneWithWarn", scanError) : Loc.T("status.done");
+                StatusKindNow = StatusKind.Done;
                 _lastAutoScanDate = snap.Time.ToLocalTime().Date;
                 ScheduleNext();
 
@@ -166,7 +174,8 @@ public static class Monitor
             }
             catch (Exception ex)
             {
-                Status = "扫描失败: " + ex.Message;
+                Status = Loc.F("status.scanFailed", ex.Message);
+                StatusKindNow = StatusKind.Failed;
             }
             finally
             {
@@ -203,6 +212,12 @@ public static class Monitor
             }
             // 冷启动时 LastScanTime 还是默认值：用最新快照的时间兜底，避免界面显示"尚未完成过扫描"
             if (LastScanTime <= DateTimeOffset.MinValue && Latest != null) LastScanTime = Latest.Time;
+            // 状态栏同理：有历史快照就不该显示"尚未扫描"
+            if (fresh == null && Latest != null && StatusKindNow == StatusKind.Never)
+            {
+                Status = Loc.F("status.fromSnapshot", Fmt.TimeFull(Latest.Time));
+                StatusKindNow = StatusKind.Done;
+            }
             Diff = (Latest != null && Prev != null) ? DiffEngine.Compare(Prev, Latest) : null;
             Advice = Latest != null
                 ? (Latest.Advice.Count > 0 ? Latest.Advice : AdviceEngine.Evaluate(Latest))

@@ -639,6 +639,10 @@ internal static class Win32
     [DllImport("kernel32.dll")]
     public static extern IntPtr GetStdHandle(int nStdHandle);
 
+    /// <summary>系统界面语言（LANGID：低 10 位是主语言，0x04 中文 / 0x11 日文 / 0x09 英文）。</summary>
+    [DllImport("kernel32.dll")]
+    public static extern ushort GetUserDefaultUILanguage();
+
     [DllImport("kernel32.dll")]
     public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 

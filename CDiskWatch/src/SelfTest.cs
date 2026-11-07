@@ -93,7 +93,7 @@ public static class SelfTest
             snap.CatCounts[(int)FileCategory.Video] = 7;
             snap.Dirs.Add(new DirStat { Path = "C:\\Users\\Bob\\Videos", Bytes = 12L << 30, FileCount = 7, Level = 3, IsPartition = true });
             snap.TopFiles.Add(new FileStat { Path = "C:\\Users\\Bob\\Videos\\a.mp4", Bytes = 12L << 30, Modified = DateTimeOffset.Now });
-            snap.SysFiles.Add(new SysFileStat { Path = "C:\\hiberfil.sys", Bytes = 25L << 30, Kind = "系统文件", Note = "休眠文件" });
+            snap.SysFiles.Add(new SysFileStat { Path = "C:\\hiberfil.sys", Bytes = 25L << 30, Flavor = SysFlavor.Hiberfil });
             string sp = Path.Combine(tmpDir, "t.snap");
             snap.Save(sp);
             var back = Snapshot.Load(sp);
@@ -104,7 +104,7 @@ public static class SelfTest
                 Check(back.CatBytes[(int)FileCategory.Video] == 12L << 30, "快照：类别字节一致");
                 Check(back.Dirs.Count == 1 && back.Dirs[0].Path == "C:\\Users\\Bob\\Videos", "快照：目录条目一致");
                 Check(back.TopFiles.Count == 1 && back.TopFiles[0].Bytes == 12L << 30, "快照：大文件条目一致");
-                Check(back.SysFiles.Count == 1 && back.SysFiles[0].Kind == "系统文件", "快照：系统文件条目一致");
+                Check(back.SysFiles.Count == 1 && back.SysFiles[0].Flavor == SysFlavor.Hiberfil, "快照：系统文件条目一致");
                 Check(back.Rollups.Count > 0, "快照：祖先汇总已重算");
 
                 // 轻量头：历史页只读这个（否则每份完整快照要占 ~1.3MB 内存）
@@ -169,17 +169,21 @@ public static class SelfTest
         Check(d.Growing.Count >= 1 && d.Growing[0].Path == "C:\\Users\\Bob\\Videos" && d.Growing[0].Delta == 15L << 30, "对比：增量文件夹排序正确");
         Check(d.Growing.Any(x => x.IsNew && x.Path == "C:\\Temp"), "对比：新增目录被标记");
         Check(d.Cats.First(x => x.Index == (int)FileCategory.Video).Delta == 15L << 30, "对比：类别差值正确");
-        Check(d.Verdict.Contains("视频") || d.Verdict.Length > 0, "对比：结论文本生成");
-        Check(d.UsedDelta > 0 && d.Verdict.Contains("已用空间增加"), "对比：结论文案方向正确（已用变多 = 空间变少）", d.Verdict);
+        Check(d.Verdict.Length > 0, "对比：结论文本生成", d.Verdict);
+        // 文案方向与语言无关：比较「增长」与「减少」两种模板的前缀
+        string grewPrefix = LongestFragment(Loc.T("verdict.headGrew"));
+        string shrankPrefix = LongestFragment(Loc.T("verdict.headShrank"));
+        Check(d.UsedDelta > 0 && d.Verdict.Contains(grewPrefix) && !d.Verdict.Contains(shrankPrefix),
+            "对比：结论文案方向正确（已用变多 = 空间变少）", d.Verdict);
 
         // ===== 建议引擎 =====
         var sn = new Snapshot { Time = DateTimeOffset.Now };
         string localTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
         sn.Dirs.Add(new DirStat { Path = localTemp, Bytes = 3L << 30, Level = Scanner.LevelOf(localTemp), IsPartition = true });
-        sn.SysFiles.Add(new SysFileStat { Path = "C:\\hiberfil.sys", Bytes = 25L << 30, Kind = "系统文件" });
+        sn.SysFiles.Add(new SysFileStat { Path = "C:\\hiberfil.sys", Bytes = 25L << 30, Flavor = SysFlavor.SystemFile });
         var cards = AdviceEngine.Evaluate(sn);
         Check(AdviceEngine.Rules.Any(r => r.Id == "temp-user"), "建议：规则表包含用户临时目录");
-        Check(cards.Any(c => c.Path.Contains("Temp") && c.Risk == "低"), "建议：命中临时目录规则");
+        Check(cards.Any(c => c.Path.Contains("Temp") && c.Risk == RiskLevel.Low), "建议：命中临时目录规则");
         Check(cards.Any(c => c.Path.EndsWith("hiberfil.sys")), "建议：命中休眠文件规则");
         Check(cards.All(c => c.Tip.Length > 0), "建议：每条都有操作说明");
         Check(AdviceEngine.WildcardMatch("Default", "*"), "建议：通配符 * 匹配任意");
@@ -240,6 +244,103 @@ public static class SelfTest
             Win32.ReleaseDC(IntPtr.Zero, screenDc);
         }
 
+        // ===== 多语言 =====
+        string homeLang = Loc.Code;
+        var zhMap = ToMap(Tables.ZhCn);
+        var jaMap = ToMap(Tables.JaJp);
+        var enMap = ToMap(Tables.EnUs);
+        Check(Tables.Codes.Length == 3 && zhMap.Count > 200, "多语言：内置 3 种语言", string.Join(" / ", Tables.Codes) + $" 共 {zhMap.Count} 条");
+
+        var keyDiffJa = zhMap.Keys.Except(jaMap.Keys).Concat(jaMap.Keys.Except(zhMap.Keys)).ToList();
+        var keyDiffEn = zhMap.Keys.Except(enMap.Keys).Concat(enMap.Keys.Except(zhMap.Keys)).ToList();
+        Check(keyDiffJa.Count == 0, "多语言：日文 key 集合与中文一致", string.Join(",", keyDiffJa.Take(8)));
+        Check(keyDiffEn.Count == 0, "多语言：英文 key 集合与中文一致", string.Join(",", keyDiffEn.Take(8)));
+
+        var badPlaceholder = new List<string>();
+        var emptyText = new List<string>();
+        foreach (var kv in zhMap)
+        {
+            var p0 = LangPack.Placeholders(kv.Value);
+            if (!jaMap.ContainsKey(kv.Key) || !enMap.ContainsKey(kv.Key)) continue;
+            if (!p0.SetEquals(LangPack.Placeholders(jaMap[kv.Key]))) badPlaceholder.Add("ja:" + kv.Key);
+            if (!p0.SetEquals(LangPack.Placeholders(enMap[kv.Key]))) badPlaceholder.Add("en:" + kv.Key);
+            if (string.IsNullOrWhiteSpace(jaMap[kv.Key]) || string.IsNullOrWhiteSpace(enMap[kv.Key])) emptyText.Add(kv.Key);
+        }
+        Check(badPlaceholder.Count == 0, "多语言：占位符一一对应（不会 FormatException）", string.Join(",", badPlaceholder.Take(8)));
+        Check(emptyText.Count == 0, "多语言：无空译文", string.Join(",", emptyText.Take(8)));
+
+        // 每种语言都要能取到全部文案（T 不能把 key 本身吐出来，F 不能抛异常）
+        int unresolved = 0;
+        string firstUnresolved = "";
+        foreach (string code in Tables.Codes)
+        {
+            Loc.Load(code);
+            foreach (var kv in zhMap)
+            {
+                string v = Loc.T(kv.Key);
+                if (v.Length == 0 || v == kv.Key)
+                {
+                    unresolved++;
+                    if (firstUnresolved.Length == 0) firstUnresolved = code + ":" + kv.Key;
+                }
+                var ph = LangPack.Placeholders(kv.Value);
+                int maxPh = ph.Count == 0 ? 0 : ph.Max();
+                var args = new object[maxPh + 1];
+                for (int i = 0; i < args.Length; i++) args[i] = i + 1;
+                string f = Loc.F(kv.Key, args);
+                if (f.IndexOf('{') >= 0)
+                {
+                    unresolved++;
+                    if (firstUnresolved.Length == 0) firstUnresolved = code + ":format:" + kv.Key;
+                }
+            }
+        }
+        Check(unresolved == 0, "多语言：三种语言全部 key 均可解析且参数格式正确", firstUnresolved);
+
+        // 排版预算：页签 / 顶栏按钮在每种语言下都必须放得下（自绘 UI 没有弹性布局，靠这个兜底）
+        var overflow = new List<string>();
+        string[] tabKeys = { "tab.overview", "tab.dirs", "tab.files", "tab.delta", "tab.cats", "tab.advice", "tab.history" };
+        string[] actKeys = { "action.dataDir", "action.copyReport", "action.rescan" };
+        foreach (string code in Tables.Codes)
+        {
+            Loc.Load(code);
+            IntPtr lf = Theme.CreateUiFont(15, 600, Loc.FontFace);
+            IntPtr dc = Win32.GetDC(IntPtr.Zero);
+            try
+            {
+                int tabs = 0;
+                foreach (var k in tabKeys) tabs += Theme.Measure(dc, lf, Loc.T(k)) + 30 + 6;
+                int acts = 0;
+                foreach (var k in actKeys) acts += Theme.Measure(dc, lf, Loc.T(k)) + 38 + 8;
+                if (tabs > 1140) overflow.Add($"{code}:tabs={tabs}px");
+                if (acts > 620) overflow.Add($"{code}:actions={acts}px");
+            }
+            finally
+            {
+                if (lf != IntPtr.Zero) Win32.DeleteObject(lf);
+                Win32.ReleaseDC(IntPtr.Zero, dc);
+            }
+        }
+        Check(overflow.Count == 0, "多语言：页签/按钮在每种语言下不溢出（排版预算）", string.Join(" ", overflow));
+
+        // 语言切换的基础设施
+        Loc.Load("ja-JP");
+        Check(Loc.Code == Loc.JaJp && Loc.FontFace != "Microsoft YaHei UI", "多语言：日文使用日文字体", Loc.FontFace);
+        Loc.Load("en-US");
+        Check(Loc.Code == Loc.EnUs && Loc.FontFace.Contains("Segoe"), "多语言：英文使用 Segoe UI", Loc.FontFace);
+        Check(Loc.DateShortPattern.StartsWith("yyyy"), "多语言：英文日期带年份", Loc.DateShortPattern);
+        Loc.Load("auto");
+        Check(Tables.Codes.Contains(Loc.Code), "多语言：auto 解析到内置语言", Loc.Code + "（系统 " + Loc.DetectSystem() + "）");
+
+        // 旧快照（v3，中文文案）迁移
+        Check(AdviceEngine.IdFromLegacyName("用户临时目录") == "temp-user", "多语言：旧快照规则名可反查为稳定 Id");
+        Check(AdviceEngine.RiskFromLegacy("高") == RiskLevel.High && AdviceEngine.RiskFromLegacy("中") == RiskLevel.Mid,
+            "多语言：旧快照风险等级可映射为枚举");
+        Check(SysFileStat.FlavorOf("hiberfil.sys") == SysFlavor.Hiberfil && SysFileStat.FlavorOf("MEMORY.DMP") == SysFlavor.MemoryDump,
+            "多语言：系统文件种类按文件名还原");
+
+        Loc.Load(homeLang);
+
         // ===== 应用图标 =====
         IntPtr iconH = AppIcon.Load();
         Check(iconH != IntPtr.Zero, "应用图标：可加载",
@@ -253,6 +354,31 @@ public static class SelfTest
                 if (!Win32.HasEntryPoint(dll, f)) missing.Add(f);
             Check(missing.Count == 0, $"Win32 入口点：{dll}", missing.Count == 0 ? "" : "缺少 " + string.Join(", ", missing));
         }
+    }
+
+    /// <summary>模板里最长的一段固定文字（用于跨语言判断文案方向，避免依赖某种语言的措辞）。</summary>
+    static string LongestFragment(string template)
+    {
+        string best = "";
+        var sb = new StringBuilder();
+        foreach (char ch in template + "{")
+        {
+            if (ch == '{' || ch == '}')
+            {
+                if (sb.Length > best.Length) best = sb.ToString();
+                sb.Clear();
+            }
+            else sb.Append(ch);
+        }
+        return best.Trim().TrimEnd('（', '(');
+    }
+
+    /// <summary>把生成表（key,value 交替的扁平数组）转成字典。</summary>
+    static Dictionary<string, string> ToMap(string[] pairs)
+    {
+        var d = new Dictionary<string, string>(pairs.Length / 2, StringComparer.Ordinal);
+        for (int i = 0; i + 1 < pairs.Length; i += 2) d[pairs[i]] = pairs[i + 1];
+        return d;
     }
 
     /// <summary>把单个字符画到内存 DC 上，返回墨迹（非白像素）宽度，用于检测叠字。</summary>

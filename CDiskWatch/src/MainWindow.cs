@@ -50,17 +50,21 @@ public sealed class MainWindow
 
     public IntPtr Hwnd;
 
-    static readonly string[] PageNames = { "概览", "目录", "大文件", "增量", "类型", "建议", "历史" };
+    static readonly string[] PageNames =
+    {
+        Loc.T("tab.overview"), Loc.T("tab.dirs"), Loc.T("tab.files"), Loc.T("tab.delta"),
+        Loc.T("tab.cats"), Loc.T("tab.advice"), Loc.T("tab.history"),
+    };
 
     static readonly Col[][] Cols =
     {
-        new[] { new Col("指标", 0.26f, Theme.AlignLeft, ColStyle.Primary), new Col("数值", 0.18f, Theme.AlignRight, ColStyle.Value), new Col("说明", 0.56f, Theme.AlignLeft, ColStyle.Muted) },
-        new[] { new Col("目录", 0.52f, Theme.AlignLeft, ColStyle.Primary), new Col("大小", 0.14f, Theme.AlignRight, ColStyle.Value), new Col("占比", 0.10f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.24f, Theme.AlignLeft, ColStyle.Bar) },
-        new[] { new Col("#", 0.05f, Theme.AlignRight, ColStyle.Index), new Col("大小", 0.11f, Theme.AlignRight, ColStyle.Value), new Col("修改时间", 0.16f, Theme.AlignLeft, ColStyle.Muted), new Col("路径", 0.68f, Theme.AlignLeft, ColStyle.Primary) },
-        new[] { new Col("文件夹", 0.44f, Theme.AlignLeft, ColStyle.Primary), new Col("增量", 0.13f, Theme.AlignRight, ColStyle.Value), new Col("现大小", 0.13f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.30f, Theme.AlignLeft, ColStyle.Bar) },
-        new[] { new Col("类别", 0.16f, Theme.AlignLeft, ColStyle.Primary), new Col("大小", 0.16f, Theme.AlignRight, ColStyle.Value), new Col("数量", 0.12f, Theme.AlignRight, ColStyle.Muted), new Col("占比", 0.10f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.46f, Theme.AlignLeft, ColStyle.Bar) },
-        new[] { new Col("路径", 0.52f, Theme.AlignLeft, ColStyle.Primary), new Col("大小", 0.12f, Theme.AlignRight, ColStyle.Value), new Col("风险", 0.10f, Theme.AlignLeft, ColStyle.Tag), new Col("命中规则", 0.26f, Theme.AlignLeft, ColStyle.Muted) },
-        new[] { new Col("时间", 0.18f, Theme.AlignLeft, ColStyle.Muted), new Col("可用", 0.15f, Theme.AlignRight, ColStyle.Value), new Col("已用", 0.15f, Theme.AlignRight, ColStyle.Value), new Col("变化", 0.15f, Theme.AlignRight, ColStyle.Value), new Col("占用率", 0.37f, Theme.AlignLeft, ColStyle.Bar) },
+        new[] { new Col(Loc.T("col.item"), 0.26f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.value"), 0.18f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.note"), 0.56f, Theme.AlignLeft, ColStyle.Muted) },
+        new[] { new Col(Loc.T("col.dir"), 0.52f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.size"), 0.14f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.share"), 0.10f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.24f, Theme.AlignLeft, ColStyle.Bar) },
+        new[] { new Col("#", 0.05f, Theme.AlignRight, ColStyle.Index), new Col(Loc.T("col.size"), 0.11f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.mtime"), 0.16f, Theme.AlignLeft, ColStyle.Muted), new Col(Loc.T("col.path"), 0.68f, Theme.AlignLeft, ColStyle.Primary) },
+        new[] { new Col(Loc.T("col.folder"), 0.44f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.delta"), 0.13f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.nowSize"), 0.13f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.30f, Theme.AlignLeft, ColStyle.Bar) },
+        new[] { new Col(Loc.T("col.cat"), 0.16f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.size"), 0.16f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.count"), 0.12f, Theme.AlignRight, ColStyle.Muted), new Col(Loc.T("col.share"), 0.10f, Theme.AlignRight, ColStyle.Muted), new Col("", 0.46f, Theme.AlignLeft, ColStyle.Bar) },
+        new[] { new Col(Loc.T("col.path"), 0.52f, Theme.AlignLeft, ColStyle.Primary), new Col(Loc.T("col.size"), 0.12f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.risk"), 0.10f, Theme.AlignLeft, ColStyle.Tag), new Col(Loc.T("col.rule"), 0.26f, Theme.AlignLeft, ColStyle.Muted) },
+        new[] { new Col(Loc.T("col.time"), 0.18f, Theme.AlignLeft, ColStyle.Muted), new Col(Loc.T("col.free"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.used"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.change"), 0.15f, Theme.AlignRight, ColStyle.Value), new Col(Loc.T("col.usage"), 0.37f, Theme.AlignLeft, ColStyle.Bar) },
     };
 
     static readonly uint[] LevelColors =
@@ -68,7 +72,10 @@ public sealed class MainWindow
         Theme.Accent, Win32.Rgb(0x4F, 0x86, 0xE8), Win32.Rgb(0x6E, 0x9B, 0xEE), Win32.Rgb(0x93, 0xB4, 0xF2), Win32.Rgb(0xB6, 0xCC, 0xF7),
     };
 
-    static readonly (string text, int action)[] Actions = { ("数据目录", 2), ("复制报告", 1), ("立即扫描", 0) };
+    static readonly (string text, int action)[] Actions =
+    {
+        (Loc.T("action.dataDir"), 2), (Loc.T("action.copyReport"), 1), (Loc.T("action.rescan"), 0),
+    };
 
     // ===== 状态 =====
     int _page;
@@ -125,12 +132,12 @@ public sealed class MainWindow
             lpszClassName = ClassName,
         };
         ushort atom = Win32.RegisterClassW(ref wc);
-        if (atom == 0) throw new InvalidOperationException("RegisterClassW 失败: " + Marshal.GetLastWin32Error());
+        if (atom == 0) throw new InvalidOperationException(Loc.F("err.registerClass", Marshal.GetLastWin32Error()));
 
-        IntPtr hwnd = Win32.CreateWindowExW(0, ClassName, "C 盘容量监控",
+        IntPtr hwnd = Win32.CreateWindowExW(0, ClassName, Loc.T("app.title"),
             Win32.WS_OVERLAPPEDWINDOW | Win32.WS_CLIPCHILDREN,
             80, 60, self._defW, self._defH, IntPtr.Zero, IntPtr.Zero, hinst, IntPtr.Zero);
-        if (hwnd == IntPtr.Zero) throw new InvalidOperationException("CreateWindowExW 失败: " + Marshal.GetLastWin32Error());
+        if (hwnd == IntPtr.Zero) throw new InvalidOperationException(Loc.F("err.createWindow", Marshal.GetLastWin32Error()));
         self.Hwnd = hwnd;
 
         self.ApplyDpi();
@@ -397,7 +404,7 @@ public sealed class MainWindow
     {
         if (s == null)
         {
-            _rows.Add(Single("还没有扫描数据 —— 点击右上角「立即扫描」开始第一次全盘扫描"));
+            _rows.Add(Single(Loc.T("state.noScanHint")));
             return;
         }
 
@@ -407,18 +414,22 @@ public sealed class MainWindow
 
         _rows.Add(new Row
         {
-            Cells = new[] { "可用空间", Fmt.Bytes(s.FreeBytes), Fmt.Pct(freeRatio) + " 的剩余空间 · 已用率 " + Fmt.Pct(usedRatio) },
+            Cells = new[] { Loc.T("hero.freeSpace"), Fmt.Bytes(s.FreeBytes), Loc.F("hero.freeDetail", Fmt.Pct(freeRatio), Fmt.Pct(usedRatio)) },
             Bar = usedRatio, BarColor = c, TextColor = c,
         });
         _rows.Add(new Row
         {
-            Cells = new[] { "已用空间", Fmt.Bytes(s.UsedBytes), "总容量 " + Fmt.Bytes(s.TotalBytes) + " · 文件 " + s.FileCount.ToString("N0") + " 个 / 目录 " + s.DirCount.ToString("N0") + " 个" },
+            Cells = new[]
+            {
+                Loc.T("hero.usedSpace"), Fmt.Bytes(s.UsedBytes),
+                Loc.F("hero.capacityFull", Fmt.Bytes(s.TotalBytes), Fmt.Num(s.FileCount), Fmt.Num(s.DirCount)),
+            },
         });
 
         var diff = Monitor.Diff;
         if (diff == null)
         {
-            _rows.Add(new Row { Cells = new[] { "本次变化", "—", "首次扫描，已作为基线；下一次扫描后即可显示增量" } });
+            _rows.Add(new Row { Cells = new[] { Loc.T("hero.change"), "—", Loc.T("hero.changeFirst") } });
         }
         else
         {
@@ -426,9 +437,9 @@ public sealed class MainWindow
             {
                 Cells = new[]
                 {
-                    "本次变化",
+                    Loc.T("hero.change"),
                     (diff.UsedDelta >= 0 ? "+" : "") + Fmt.Bytes(diff.UsedDelta),
-                    "较上次扫描（" + Fmt.Time(diff.From) + " → " + Fmt.Time(diff.To) + "）",
+                    Loc.F("hero.changeSince", Fmt.Time(diff.From) + " → " + Fmt.Time(diff.To)),
                 },
                 Bar = Math.Min(1.0, Math.Abs(diff.UsedDelta) / Math.Max(1.0, s.UsedBytes)),
                 BarColor = diff.UsedDelta > 0 ? Theme.Bad : Theme.Good,
@@ -436,27 +447,27 @@ public sealed class MainWindow
             });
         }
 
-        _rows.Add(Section("结论"));
-        _rows.Add(Block(diff?.Verdict ?? "首次扫描完成，已作为基线，后续每次扫描会自动对比变化。", Theme.TextMain));
+        _rows.Add(Section(Loc.T("hero.conclusion")));
+        _rows.Add(Block(diff?.Verdict ?? Loc.T("hero.conclusionFirst"), Theme.TextMain));
 
         _rows.Add(new Row
         {
-            Cells = new[] { "未归因占用", Fmt.Bytes(s.UnaccountedBytes), BuildUnaccountedNote() },
+            Cells = new[] { Loc.T("hero.unaccounted"), Fmt.Bytes(s.UnaccountedBytes), BuildUnaccountedNote() },
         });
         if (s.HardlinkBytes > 0)
             _rows.Add(new Row
             {
-                Cells = new[] { "硬链接重复计数", Fmt.Bytes(s.HardlinkBytes), "文件逻辑合计比实际占用多出这么多（WinSxS 等硬链接被重复统计）" },
+                Cells = new[] { Loc.T("hero.hardlink"), Fmt.Bytes(s.HardlinkBytes), Loc.T("hero.hardlinkNote") },
                 TextColor = Theme.TextSub,
             });
         if (s.ShadowUsedBytes > 0)
-            _rows.Add(new Row { Cells = new[] { "卷影副本 / 还原点", Fmt.Bytes(s.ShadowUsedBytes), "系统还原点与卷影副本占用（可用 vssadmin 查看详情）" } });
+            _rows.Add(new Row { Cells = new[] { Loc.T("hero.shadow"), Fmt.Bytes(s.ShadowUsedBytes), Loc.T("hero.shadowNote") } });
         if (s.CacheBytes > 0 || s.TempBytes > 0)
-            _rows.Add(new Row { Cells = new[] { "缓存 / 临时", Fmt.Bytes(s.CacheBytes) + " / " + Fmt.Bytes(s.TempBytes), "路径中含 cache / temp 关键字的目录合计" } });
+            _rows.Add(new Row { Cells = new[] { Loc.T("hero.cacheTemp"), Fmt.Bytes(s.CacheBytes) + " / " + Fmt.Bytes(s.TempBytes), Loc.T("hero.cacheTempNote") } });
 
-        _rows.Add(Section("系统级占用（不在普通文件夹里）"));
+        _rows.Add(Section(Loc.T("hero.sysTitle")));
         if (s.SysFiles.Count == 0)
-            _rows.Add(new Row { Cells = new[] { "无", "", "未发现 hiberfil.sys / pagefile.sys 等系统级大文件" } });
+            _rows.Add(new Row { Cells = new[] { Loc.T("hero.none"), "", Loc.T("hero.sysEmpty") } });
         foreach (var sf in s.SysFiles.OrderByDescending(x => x.Bytes))
             _rows.Add(new Row
             {
@@ -465,13 +476,13 @@ public sealed class MainWindow
                 Path = sf.Path,
             });
 
-        _rows.Add(Section("预警"));
+        _rows.Add(Section(Loc.T("hero.alerts")));
         if (Monitor.Alerts.Count == 0)
-            _rows.Add(new Row { Cells = new[] { "无", "", "当前没有触发的预警，容量状态正常" } });
+            _rows.Add(new Row { Cells = new[] { Loc.T("hero.none"), "", Loc.T("hero.alertsEmpty") } });
         foreach (var a in Monitor.Alerts)
             _rows.Add(new Row
             {
-                Cells = new[] { a.Title, a.Level == AlertLevel.Critical ? "严重" : a.Level == AlertLevel.Warning ? "警告" : "提示", a.Detail },
+                Cells = new[] { a.Title, a.LevelLabel, a.Detail },
                 TextColor = a.Level == AlertLevel.Critical ? Theme.Bad : a.Level == AlertLevel.Warning ? Theme.Warn : Theme.TextSub,
             });
 
@@ -479,12 +490,12 @@ public sealed class MainWindow
 
     static string BuildUnaccountedNote() =>
         SystemUsage.IsAdmin()
-            ? "不在普通文件夹里的占用：卷影副本 / MFT / 簇损耗 / 系统保留"
-            : "不在普通文件夹里的占用：卷影副本 / MFT / 簇损耗 / 系统保留（非管理员运行时还包含无权限读取的目录）";
+            ? Loc.T("hero.unaccountedNote")
+            : Loc.F("hero.unaccountedNoteNoAdmin", Loc.T("hero.unaccountedNote"));
 
     void BuildDirs(Snapshot? s)
     {
-        if (s == null) { _rows.Add(Single("尚无数据 —— 请先执行一次扫描")); return; }
+        if (s == null) { _rows.Add(Single(Loc.T("state.noData"))); return; }
 
         var list = new List<DirStat>();
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -495,10 +506,10 @@ public sealed class MainWindow
             // 分区键可能与祖先汇总同路径：汇总值是整棵子树，取它即可
             if (seenPaths.Add(s.Dirs[i].Path)) list.Add(s.Dirs[i]);
         }
-        if (list.Count == 0) { _rows.Add(Single("本次扫描没有 ≥1MB 的目录")); return; }
+        if (list.Count == 0) { _rows.Add(Single(Loc.T("dirs.empty"))); return; }
         list.Sort((a, b) => b.Bytes.CompareTo(a.Bytes));
 
-        _rows.Add(Section("大目录（按占用排序，缩进表示层级；点击行可在资源管理器中打开）"));
+        _rows.Add(Section(Loc.T("dirs.hint")));
         long logical = s.LogicalBytes > 0 ? s.LogicalBytes : Math.Max(1, s.UsedBytes);
         int shown = 0;
         foreach (var d in list)
@@ -523,13 +534,13 @@ public sealed class MainWindow
 
     void BuildBigFiles(Snapshot? s)
     {
-        if (s == null) { _rows.Add(Single("尚无数据 —— 请先执行一次扫描")); return; }
-        if (s.TopFiles.Count == 0) { _rows.Add(Single("没有扫描到大文件")); return; }
+        if (s == null) { _rows.Add(Single(Loc.T("state.noData"))); return; }
+        if (s.TopFiles.Count == 0) { _rows.Add(Single(Loc.T("files.none"))); return; }
 
         var prevPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (Monitor.Prev != null) foreach (var f in Monitor.Prev.TopFiles) prevPaths.Add(f.Path);
 
-        _rows.Add(Section("Top " + s.TopFiles.Count + " 大文件（标红 = 相比上次快照新增）"));
+        _rows.Add(Section(Loc.F("files.hint", Fmt.Num(s.TopFiles.Count))));
         int i = 0;
         foreach (var f in s.TopFiles)
         {
@@ -540,11 +551,11 @@ public sealed class MainWindow
                 {
                     (i + 1).ToString(),
                     Fmt.Bytes(f.Bytes),
-                    f.Modified.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+                    Fmt.Stamp(f.Modified),
                     f.Path,
                 },
                 TextColor = isNew ? Theme.Bad : Theme.TextMain,
-                Sub = isNew ? "★ 新增：上次快照中没有这个文件" : "",
+                Sub = isNew ? Loc.T("files.newMark") : "",
                 Path = f.Path,
             });
             i++;
@@ -556,14 +567,14 @@ public sealed class MainWindow
         var diff = Monitor.Diff;
         if (s == null || diff == null)
         {
-            _rows.Add(Section("增量对比"));
-            _rows.Add(Single("需要两份快照才能对比：首次扫描已作为基线，下次扫描后即可显示增量"));
+            _rows.Add(Section(Loc.T("delta.title")));
+            _rows.Add(Single(Loc.T("delta.needTwo")));
             return;
         }
 
-        _rows.Add(Section("增长最多的文件夹 Top " + Math.Min(20, diff.Growing.Count) + "（蓝色条 = 本次新增目录）"));
+        _rows.Add(Section(Loc.F("delta.growTitle", Fmt.Num(Math.Min(20, diff.Growing.Count)))));
         if (diff.Growing.Count == 0)
-            _rows.Add(new Row { Cells = new[] { "没有增长的目录", "—", "与上次快照相比各目录均未增大", "" } });
+            _rows.Add(new Row { Cells = new[] { Loc.T("delta.growEmpty"), "—", Loc.T("delta.growEmptyNote"), "" } });
         long max = 1;
         foreach (var g in diff.Growing.Take(20)) if (g.Delta > max) max = g.Delta;
         foreach (var g in diff.Growing.Take(20))
@@ -573,13 +584,13 @@ public sealed class MainWindow
                 Bar = (double)g.Delta / max,
                 BarColor = g.IsNew ? Theme.Accent : Theme.Warn,
                 TextColor = Theme.TextMain,
-                Sub = g.IsNew ? "★ 新增目录" : "",
+                Sub = g.IsNew ? Loc.T("delta.newDirMark") : "",
                 Path = g.Path,
             });
 
-        _rows.Add(Section("文件类型增量"));
+        _rows.Add(Section(Loc.T("delta.catTitle")));
         var cats = diff.Cats.Where(x => x.Delta != 0).Take(12).ToList();
-        if (cats.Count == 0) _rows.Add(new Row { Cells = new[] { "没有变化", "—", "", "" } });
+        if (cats.Count == 0) _rows.Add(new Row { Cells = new[] { Loc.T("delta.catEmpty"), "—", "", "" } });
         foreach (var c in cats)
             _rows.Add(new Row
             {
@@ -590,11 +601,11 @@ public sealed class MainWindow
 
         if (diff.Shrinking.Count > 0)
         {
-            _rows.Add(Section("收缩最多的文件夹 Top " + Math.Min(10, diff.Shrinking.Count)));
+            _rows.Add(Section(Loc.F("delta.shrinkTitle", Fmt.Num(Math.Min(10, diff.Shrinking.Count)))));
             foreach (var g in diff.Shrinking.Take(10))
                 _rows.Add(new Row
                 {
-                    Cells = new[] { g.Path, Fmt.Bytes(g.Delta), g.IsGone ? "已不存在" : Fmt.Bytes(g.NewBytes), "" },
+                    Cells = new[] { g.Path, Fmt.Bytes(g.Delta), g.IsGone ? Loc.T("delta.gone") : Fmt.Bytes(g.NewBytes), "" },
                     TextColor = Theme.Good,
                     Path = g.IsGone ? null : g.Path,
                 });
@@ -602,11 +613,11 @@ public sealed class MainWindow
 
         if (diff.NewFiles.Count > 0)
         {
-            _rows.Add(Section("新出现的大文件"));
+            _rows.Add(Section(Loc.T("delta.newFiles")));
             foreach (var f in diff.NewFiles.Take(10))
                 _rows.Add(new Row
                 {
-                    Cells = new[] { f.Path, "+" + Fmt.Bytes(f.Bytes), f.Modified.ToLocalTime().ToString("MM-dd HH:mm"), "" },
+                    Cells = new[] { f.Path, "+" + Fmt.Bytes(f.Bytes), Fmt.Time(f.Modified), "" },
                     TextColor = Theme.Warn,
                     Path = f.Path,
                 });
@@ -615,17 +626,17 @@ public sealed class MainWindow
 
     void BuildCategories(Snapshot? s)
     {
-        if (s == null) { _rows.Add(Single("尚无数据 —— 请先执行一次扫描")); return; }
+        if (s == null) { _rows.Add(Single(Loc.T("state.noData"))); return; }
         long tot = 0;
         for (int i = 0; i < Cat.Count; i++) tot += s.CatBytes[i];
-        if (tot <= 0) { _rows.Add(Single("本次扫描没有统计到文件")); return; }
+        if (tot <= 0) { _rows.Add(Single(Loc.T("state.noFiles"))); return; }
 
-        _rows.Add(Section("文件类型分布（共 " + Fmt.Bytes(tot) + "）"));
+        _rows.Add(Section(Loc.F("cats.title", Fmt.Bytes(tot))));
         var order = Enumerable.Range(0, Cat.Count).Where(i => s.CatBytes[i] > 0).OrderByDescending(i => s.CatBytes[i]).ToList();
         foreach (var i in order)
             _rows.Add(new Row
             {
-                Cells = new[] { Cat.Names[i], Fmt.Bytes(s.CatBytes[i]), s.CatCounts[i].ToString("N0"), Fmt.Pct((double)s.CatBytes[i] / tot), "" },
+                Cells = new[] { Cat.Name(i), Fmt.Bytes(s.CatBytes[i]), Fmt.Num(s.CatCounts[i]), Fmt.Pct((double)s.CatBytes[i] / tot), "" },
                 Bar = (double)s.CatBytes[i] / tot,
                 BarColor = Cat.Colors[i],
             });
@@ -635,11 +646,11 @@ public sealed class MainWindow
     {
         if (Monitor.Advice.Count == 0)
         {
-            _rows.Add(Section("删除建议"));
-            _rows.Add(Single("暂无命中规则的优化项（本软件只给建议，不会自动删除任何文件）"));
+            _rows.Add(Section(Loc.T("advice.title")));
+            _rows.Add(Single(Loc.T("advice.emptyHint")));
             return;
         }
-        _rows.Add(Section("删除建议 Top " + Math.Min(40, Monitor.Advice.Count) + "（本软件不会自动删除任何文件，仅供参考）"));
+        _rows.Add(Section(Loc.F("advice.topTitle", Fmt.Num(Math.Min(40, Monitor.Advice.Count)))));
         long total = 0;
         int n = 0;
         foreach (var c in Monitor.Advice)
@@ -650,20 +661,20 @@ public sealed class MainWindow
             {
                 Cells = new[]
                 {
-                    c.Path + (c.MatchCount > 1 ? "（" + c.MatchCount + " 处）" : ""),
+                    c.Path + (c.MatchCount > 1 ? Loc.F("advice.count", c.MatchCount) : ""),
                     Fmt.Bytes(c.Bytes),
-                    c.Risk + "风险",
-                    c.Rule + "　" + new string('★', Math.Clamp(c.Stars, 1, 3)),
+                    Loc.F("advice.anyRisk", c.RiskLabel),
+                    c.RuleName + "　" + new string('★', Math.Clamp(c.Stars, 1, 3)),
                 },
-                Sub = "操作建议：" + c.Tip + (c.Approximate ? "　（数值为近似值）" : ""),
-                TextColor = c.Risk == "高" ? Theme.Bad : c.Risk == "中" ? Theme.Warn : Theme.TextMain,
+                Sub = Loc.F("advice.tip", c.Tip) + (c.Approximate ? Loc.T("advice.approx") : ""),
+                TextColor = c.Risk == RiskLevel.High ? Theme.Bad : c.Risk == RiskLevel.Mid ? Theme.Warn : Theme.TextMain,
                 Path = c.IsRoot ? null : c.Path,
             });
         }
-        _rows.Add(Section("合计"));
+        _rows.Add(Section(Loc.T("advice.total")));
         _rows.Add(new Row
         {
-            Cells = new[] { "以上建议合计可释放", Fmt.Bytes(total), "请逐条确认后再手动处理" },
+            Cells = new[] { Loc.T("advice.totalLabel"), Fmt.Bytes(total), Loc.T("advice.totalNote") },
             TextColor = Theme.Good,
         });
     }
@@ -671,9 +682,11 @@ public sealed class MainWindow
     void BuildHistory()
     {
         var hist = Monitor.History();
-        if (hist.Count == 0) { _rows.Add(Single("还没有历史快照")); return; }
+        if (hist.Count == 0) { _rows.Add(Single(Loc.T("history.empty"))); return; }
 
-        _rows.Add(Section("历史快照（" + hist.Count + " 份" + (hist.Count >= 2 ? "，上方为可用空间趋势" : "") + "）"));
+        _rows.Add(Section(hist.Count >= 2
+            ? Loc.F("history.title", Fmt.Num(hist.Count))
+            : Loc.F("history.titleNoChart", Fmt.Num(hist.Count))));
         for (int i = hist.Count - 1; i >= 0; i--)
         {
             var h = hist[i];
@@ -718,11 +731,11 @@ public sealed class MainWindow
 
         // 标题 + 副标题
         int tx = logo.R + S(12);
-        Theme.Text(hdc, _fTitle, "C 盘容量监控", new Win32.RECT { L = tx, T = cy - S(22), R = tx + S(320), B = cy - S(2) }, Theme.TextMain, Theme.AlignLeft);
-        Theme.Text(hdc, _fSmall, "只读监控 · 绝不删除/修改任何文件", new Win32.RECT { L = tx + S(1), T = cy + S(1), R = tx + S(320), B = cy + S(19) }, Theme.TextDim, Theme.AlignLeft);
+        Theme.Text(hdc, _fTitle, Loc.T("app.title"), new Win32.RECT { L = tx, T = cy - S(22), R = tx + S(460), B = cy - S(2) }, Theme.TextMain, Theme.AlignLeft);
+        Theme.Text(hdc, _fSmall, Loc.T("app.subtitle"), new Win32.RECT { L = tx + S(1), T = cy + S(1), R = tx + S(620), B = cy + S(19) }, Theme.TextDim, Theme.AlignLeft);
 
         DrawActionButton(hdc, _btnRescan, Actions[2].text, primary: true, enabled: !Monitor.Scanning, actionIndex: 0,
-            labelOverride: Monitor.Scanning ? "正在扫描" : null);
+            labelOverride: Monitor.Scanning ? Loc.T("status.scanningShort") : null);
         DrawActionButton(hdc, _btnCopy, Actions[1].text, primary: false, enabled: Monitor.Latest != null, actionIndex: 1);
         DrawActionButton(hdc, _btnData, Actions[0].text, primary: false, enabled: true, actionIndex: 2);
     }
@@ -753,55 +766,55 @@ public sealed class MainWindow
         uint sev = usedRatio >= 0.93 ? Theme.Bad : usedRatio >= 0.85 ? Theme.Warn : Theme.Good;
 
         // ---- 左：可用空间 ----
-        Theme.Text(hdc, _fSub, "C 盘可用空间", new Win32.RECT { L = padL, T = top, R = padL + S(360), B = top + S(20) }, Theme.TextDim, Theme.AlignLeft);
+        Theme.Text(hdc, _fSub, Loc.T("hero.freeLabel"), new Win32.RECT { L = padL, T = top, R = padL + S(460), B = top + S(20) }, Theme.TextDim, Theme.AlignLeft);
         string big = total > 0 ? Fmt.Bytes(free) : "—";
         Theme.Text(hdc, _fBig, big, new Win32.RECT { L = padL, T = top + S(18), R = padL + S(460), B = top + S(62) }, total > 0 ? sev : Theme.TextDim, Theme.AlignLeft);
         string detail = total > 0
-            ? "总容量 " + Fmt.Bytes(total) + " · 剩余占比 " + Fmt.Pct(total > 0 ? (double)free / total : 0)
-            : "尚未获取到磁盘信息";
+            ? Loc.F("hero.capacity", Fmt.Bytes(total), Fmt.Pct((double)free / total))
+            : Loc.T("hero.noDisk");
         Theme.Text(hdc, _fSub, detail, new Win32.RECT { L = padL, T = top + S(64), R = padL + S(600), B = top + S(84) }, Theme.TextSub, Theme.AlignLeft);
 
         // ---- 右：状态徽标 + 扫描信息（右对齐，纵向不与左侧文案重叠）----
         int rx = padR;
         var diff = Monitor.Diff;
         string badgeText; uint badgeFg, badgeBg;
-        if (Monitor.Scanning) { badgeText = "正在扫描…"; badgeFg = Theme.AccentText; badgeBg = Theme.AccentSoft; }
-        else if (diff == null) { badgeText = "首次扫描 · 暂无对比"; badgeFg = Theme.TextSub; badgeBg = Theme.SurfaceAlt; }
+        if (Monitor.Scanning) { badgeText = Loc.T("hero.scanning"); badgeFg = Theme.AccentText; badgeBg = Theme.AccentSoft; }
+        else if (diff == null) { badgeText = Loc.T("hero.firstScan"); badgeFg = Theme.TextSub; badgeBg = Theme.SurfaceAlt; }
         else if (diff.UsedDelta > 0)
         {
-            badgeText = "较上次 +" + Fmt.Bytes(diff.UsedDelta);
+            badgeText = Loc.F("hero.grew", Fmt.Bytes(diff.UsedDelta));
             badgeFg = diff.UsedDelta > 1L << 30 ? Theme.Bad : Theme.Warn;
             badgeBg = diff.UsedDelta > 1L << 30 ? Theme.BadSoft : Theme.WarnSoft;
         }
         else if (diff.UsedDelta < 0)
         {
-            badgeText = "较上次 −" + Fmt.Bytes(-diff.UsedDelta);
+            badgeText = Loc.F("hero.shrank", Fmt.Bytes(-diff.UsedDelta));
             badgeFg = Theme.Good; badgeBg = Theme.GoodSoft;
         }
-        else { badgeText = "较上次无变化"; badgeFg = Theme.TextSub; badgeBg = Theme.SurfaceAlt; }
+        else { badgeText = Loc.T("hero.noChange"); badgeFg = Theme.TextSub; badgeBg = Theme.SurfaceAlt; }
 
         int pillH = S(28);
         int pw = Theme.PillWidth(hdc, _fSub, badgeText, S(14));
         Theme.Pill(hdc, rx - pw, top + S(2), pillH, badgeText, _fSub, badgeFg, badgeBg, S(14));
 
-        string scanInfo = Monitor.LastScanTime > DateTimeOffset.MinValue
-            ? "上次扫描 " + Fmt.TimeFull(Monitor.LastScanTime)
-              + (Monitor.LastScanMs > 0 ? " · 用时 " + (Monitor.LastScanMs / 1000.0).ToString("F1") + "s" : "")
-            : "尚未完成过扫描";
+        string scanInfo;
+        if (Monitor.LastScanTime <= DateTimeOffset.MinValue) scanInfo = Loc.T("hero.neverScanned");
+        else if (Monitor.LastScanMs > 0) scanInfo = Loc.F("hero.lastScan", Fmt.TimeFull(Monitor.LastScanTime), Fmt.Seconds(Monitor.LastScanMs / 1000.0));
+        else scanInfo = Loc.F("hero.lastScanNoMs", Fmt.TimeFull(Monitor.LastScanTime));
         Theme.Text(hdc, _fSmall, scanInfo, new Win32.RECT { L = rx - S(460), T = top + S(36), R = rx, B = top + S(56) }, Theme.TextDim, Theme.AlignRight);
 
         string nextInfo = Monitor.NextScanTime > DateTimeOffset.MinValue
-            ? "下次自动扫描 " + Fmt.Time(Monitor.NextScanTime)
-            : "自动扫描未启用";
+            ? Loc.F("hero.nextScan", Fmt.Time(Monitor.NextScanTime))
+            : Loc.T("hero.autoOff");
         Theme.Text(hdc, _fSmall, nextInfo, new Win32.RECT { L = rx - S(460), T = top + S(58), R = rx, B = top + S(78) }, Theme.TextDim, Theme.AlignRight);
 
         // ---- 底部：占用率进度条（含语义明确的左右标注）----
         int barH = S(10);
         int barY = _heroRc.B - S(18) - barH;
         int barW = padR - padL;
-        Theme.Text(hdc, _fSmall, "已用 " + Fmt.Bytes(used) + " · " + Fmt.Pct(usedRatio),
+        Theme.Text(hdc, _fSmall, Loc.F("hero.usedLine", Fmt.Bytes(used), Fmt.Pct(usedRatio)),
             new Win32.RECT { L = padL, T = barY - S(22), R = padL + S(400), B = barY - S(4) }, Theme.TextSub, Theme.AlignLeft);
-        Theme.Text(hdc, _fSmall, "可用 " + Fmt.Bytes(free) + " · " + Fmt.Pct(total > 0 ? (double)free / total : 0),
+        Theme.Text(hdc, _fSmall, Loc.F("hero.freeLine", Fmt.Bytes(free), Fmt.Pct(total > 0 ? (double)free / total : 0)),
             new Win32.RECT { L = padR - S(400), T = barY - S(22), R = padR, B = barY - S(4) }, Theme.TextDim, Theme.AlignRight);
         Theme.Bar(hdc, padL, barY, barW, barH, usedRatio, sev);
     }
@@ -1009,8 +1022,8 @@ public sealed class MainWindow
         foreach (var h in hist) { if (h.FreeBytes < min) min = h.FreeBytes; if (h.FreeBytes > max) max = h.FreeBytes; }
         if (max - min < 1) { max = min + 1; }
 
-        Theme.Text(hdc, _fSemi, "可用空间趋势", new Win32.RECT { L = box.L + S(16), T = box.T + S(8), R = box.R - S(16), B = box.T + S(28) }, Theme.TextSub, Theme.AlignLeft);
-        Theme.Text(hdc, _fSmall, hist.Count + " 个快照 · 最高 " + Fmt.Bytes(max) + " · 最低 " + Fmt.Bytes(min),
+        Theme.Text(hdc, _fSemi, Loc.T("history.chartTitle"), new Win32.RECT { L = box.L + S(16), T = box.T + S(8), R = box.R - S(16), B = box.T + S(28) }, Theme.TextSub, Theme.AlignLeft);
+        Theme.Text(hdc, _fSmall, Loc.F("history.chartInfo", Fmt.Num(hist.Count), Fmt.Bytes(max), Fmt.Bytes(min)),
             new Win32.RECT { L = box.L + S(16), T = box.T + S(8), R = box.R - S(16), B = box.T + S(28) }, Theme.TextDim, Theme.AlignRight);
 
         int plotL = box.L + S(72), plotR = box.R - S(20);
@@ -1062,8 +1075,8 @@ public sealed class MainWindow
     {
         Theme.HLine(hdc, _statusRc.L, _statusRc.R, _statusRc.T, Theme.Divider);
 
-        uint dot = Monitor.Scanning ? Theme.Accent
-                 : Monitor.Status.StartsWith("扫描失败") ? Theme.Bad
+        uint dot = Monitor.StatusKindNow == Monitor.StatusKind.Failed ? Theme.Bad
+                 : Monitor.Scanning ? Theme.Accent
                  : Theme.Good;
         int cy = (_statusRc.T + _statusRc.B) / 2;
         Theme.Dot(hdc, _statusRc.L + S(5), cy, S(4), dot);
@@ -1072,11 +1085,11 @@ public sealed class MainWindow
         int hintRow = _hoverRow >= 0 ? _hoverRow : _selRow;
         if (hintRow >= 0 && hintRow < _rows.Count && !_rows[hintRow].IsSection) pathHint = _rows[hintRow].Path;
         string status = !string.IsNullOrEmpty(pathHint)
-            ? "路径：" + pathHint
-            : Monitor.Scanning ? "正在扫描…（首次全盘约 10~40 秒，期间可继续查看上次结果）" : Monitor.Status;
+            ? Loc.F("status.path", pathHint)
+            : Monitor.Scanning ? Loc.T("status.scanning") : Monitor.Status;
         Theme.Text(hdc, _fSmall, status, new Win32.RECT { L = _statusRc.L + S(16), T = _statusRc.T, R = _statusRc.L + S(760), B = _statusRc.B }, Theme.TextSub, Theme.AlignLeft);
 
-        string right = "双击行可在资源管理器中定位 · ←/→ 切换页签 · F5 重新扫描";
+        string right = Loc.T("status.hint");
         Theme.Text(hdc, _fSmall, right, new Win32.RECT { L = _statusRc.R - S(620), T = _statusRc.T, R = _statusRc.R, B = _statusRc.B }, Theme.TextDim, Theme.AlignRight);
     }
 

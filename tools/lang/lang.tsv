@@ -1,0 +1,294 @@
+app.title	C 盘容量监控	C ドライブ容量モニター	C: Drive Space Monitor
+app.subtitle	只读监控 · 绝不删除/修改任何文件	読み取り専用 · ファイルの削除・変更は一切行いません	Read-only - never deletes or modifies any file
+tab.overview	概览	概要	Overview
+tab.dirs	目录	フォルダー	Folders
+tab.files	大文件	大容量ファイル	Big files
+tab.delta	增量	増減	Changes
+tab.cats	类型	種類	Types
+tab.advice	建议	提案	Cleanup
+tab.history	历史	履歴	History
+action.dataDir	数据目录	データフォルダー	Data folder
+action.copyReport	复制报告	レポートをコピー	Copy report
+action.rescan	立即扫描	今すぐスキャン	Rescan now
+col.item	指标	項目	Metric
+col.value	数值	値	Value
+col.note	说明	説明	Notes
+col.dir	目录	フォルダー	Folder
+col.size	大小	サイズ	Size
+col.share	占比	割合	Share
+col.mtime	修改时间	更新日時	Modified
+col.path	路径	パス	Path
+col.folder	文件夹	フォルダー	Folder
+col.delta	增量	増分	Delta
+col.nowSize	现大小	現在	Current
+col.cat	类别	種類	Type
+col.count	数量	件数	Count
+col.risk	风险	リスク	Risk
+col.rule	命中规则	適用ルール	Matched rule
+col.time	时间	時刻	Time
+col.free	可用	空き	Free
+col.used	已用	使用中	Used
+col.change	变化	変化	Change
+col.usage	占用率	使用率	Usage
+hero.freeLabel	C 盘可用空间	C ドライブの空き容量	Free space on C:
+hero.freeSpace	可用空间	空き容量	Free space
+hero.usedSpace	已用空间	使用中の容量	Used space
+hero.capacityFull	总容量 {0} · 文件 {1} 个 / 目录 {2} 个	総容量 {0} · ファイル {1} / フォルダー {2}	Total {0} · {1} files / {2} folders
+hero.freeDetail	{0} 的剩余空间 · 已用率 {1}	{0} の空き容量 · 使用率 {1}	Free {0} of total · {1} used
+hero.usedLine	已用 {0} · {1}	使用中 {0} · {1}	Used {0} · {1}
+hero.freeLine	可用 {0} · {1}	空き {0} · {1}	Free {0} · {1}
+hero.capacity	总容量 {0} · 剩余占比 {1}	総容量 {0} · 空き比率 {1}	Total {0} · {1} free
+hero.noDisk	尚未获取到磁盘信息	ディスク情報を取得できません	Disk information not available yet
+hero.scanning	正在扫描…	スキャン中…	Scanning…
+hero.firstScan	首次扫描 · 暂无对比	初回スキャン · 比較なし	First scan - no comparison yet
+hero.grew	较上次 +{0}	前回比 +{0}	Up {0}
+hero.shrank	较上次 −{0}	前回比 −{0}	Down {0}
+hero.noChange	较上次无变化	前回と同じ	Unchanged
+hero.change	本次变化	今回の変化	Change since last
+hero.changeFirst	首次扫描，已作为基线；下一次扫描后即可显示增量	初回スキャンは基準として保存されました。次回のスキャン後に増分を表示します	First scan saved as baseline; deltas appear after the next scan
+hero.changeSince	较上次扫描（{0}）	前回スキャン（{0}）より	Since last scan ({0})
+hero.conclusion	结论	結論	Summary
+hero.conclusionFirst	首次扫描完成，已作为基线，后续每次扫描会自动对比变化。	初回スキャンが完了しました。基準として保存され、次回以降のスキャンで自動的に比較します。	First scan complete and saved as baseline. Later scans are compared automatically.
+hero.unaccounted	未归因占用	未分類の使用量	Unattributed
+hero.unaccountedNote	不在普通文件夹里的占用：卷影副本 / MFT / 簇损耗 / 系统保留	通常のフォルダー外の使用量：シャドウコピー / MFT / クラスター損失 / システム予約	Outside normal folders: shadow copies / MFT / cluster slack / reserved
+hero.unaccountedNoteNoAdmin	{0}（非管理员运行时还包含无权限读取的目录）	{0}（管理者以外の実行時は読み取り権限のないフォルダーも含む）	{0} (non-admin runs also include folders that could not be read)
+hero.hardlink	硬链接重复计数	ハードリンクの重複計上	Hard-link double counting
+hero.hardlinkNote	文件逻辑合计比实际占用多出这么多（WinSxS 等硬链接被重复统计）	論理合計が実使用量よりこの分多い（WinSxS などのハードリンクを重複計上）	Logical total exceeds real usage by this much (hard links such as WinSxS counted twice)
+hero.shadow	卷影副本 / 还原点	シャドウコピー / 復元ポイント	Shadow copies / restore points
+hero.shadowNote	系统还原点与卷影副本占用（可用 vssadmin 查看详情）	復元ポイントとシャドウコピーの使用量（詳細は vssadmin）	Used by restore points and shadow copies (see vssadmin)
+hero.cacheTemp	缓存 / 临时	キャッシュ / 一時	Cache / temp
+hero.cacheTempNote	路径中含 cache / temp 关键字的目录合计	パスに cache / temp を含むフォルダーの合計	Folders whose path contains cache / temp
+hero.sysTitle	系统级占用（不在普通文件夹里）	システム領域の使用量（通常のフォルダー外）	System-level usage (outside normal folders)
+hero.none	无	なし	None
+hero.sysEmpty	未发现 hiberfil.sys / pagefile.sys 等系统级大文件	hiberfil.sys / pagefile.sys などのシステムファイルは見つかりません	No hiberfil.sys / pagefile.sys found
+hero.alerts	预警	警告	Alerts
+hero.alertsEmpty	当前没有触发的预警，容量状态正常	現在発動中の警告はありません	No alerts triggered
+hero.lastScan	上次扫描 {0} · 用时 {1}s	前回スキャン {0} · {1} 秒	Last scan {0} · {1}s
+hero.lastScanNoMs	上次扫描 {0}	前回スキャン {0}	Last scan {0}
+status.scanningShort	正在扫描	スキャン中	Scanning
+hero.neverScanned	尚未完成过扫描	まだスキャンしていません	No scan yet
+hero.nextScan	下次自动扫描 {0}	次回の自動スキャン {0}	Next auto scan {0}
+hero.autoOff	自动扫描未启用	自動スキャンは無効です	Auto scan disabled
+hero.scanningStatus	正在扫描 {0} 盘…	{0} ドライブをスキャン中…	Scanning drive {0}…
+alert.critical	严重	重大	Critical
+alert.warning	警告	警告	Warning
+alert.info	提示	情報	Info
+status.path	路径：{0}	パス：{0}	Path: {0}
+status.hint	双击行可在资源管理器中定位 · ←/→ 切换页签 · F5 重新扫描	行をダブルクリックでエクスプローラー表示 · ←/→ でタブ切替 · F5 で再スキャン	Double-click a row to open in Explorer · ←/→ switch tabs · F5 rescan
+status.scanning	正在扫描…（首次全盘约 10~40 秒，期间可继续查看上次结果）	スキャン中…（初回は約 10〜40 秒。前回の結果は引き続き表示できます）	Scanning… (the first full scan takes 10-40 s; the previous results stay visible)
+status.scanFailed	扫描失败：{0}	スキャンに失敗しました：{0}	Scan failed: {0}
+status.readingSys	正在读取系统占用信息…	システム使用量を読み取り中…	Reading system usage…
+status.measuring	正在测量可优化目录…	整理対象フォルダーを計測中…	Measuring cleanup candidates…
+status.done	扫描完成	スキャン完了	Scan complete
+status.fromSnapshot	已加载上次快照（{0}）	前回のスナップショットを読み込みました（{0}）	Loaded the previous snapshot ({0})
+status.doneWithWarn	扫描完成（有告警：{0}）	スキャン完了（警告：{0}）	Scan complete (warnings: {0})
+state.noScanHint	还没有扫描数据 —— 点击右上角「立即扫描」开始第一次全盘扫描	まだスキャン結果がありません —— 右上の「今すぐスキャン」から最初のスキャンを実行してください	No scan data yet - click Rescan in the top right to run the first full scan
+state.noData	尚无数据 —— 请先执行一次扫描	データがありません —— まずスキャンを実行してください	No data yet - run a scan first
+state.noFiles	本次扫描没有统计到文件	このスキャンではファイルが集計されませんでした	No files were counted in this scan
+dirs.empty	本次扫描没有 ≥1MB 的目录	このスキャンでは 1MB 以上のフォルダーがありません	No folders of 1 MB or more
+dirs.hint	大目录（按占用排序，缩进表示层级；点击行可在资源管理器中打开）	大容量フォルダー（使用量順、インデントは階層。行をクリックでエクスプローラー表示）	Largest folders (sorted by size, indentation shows depth; click a row to open in Explorer)
+files.none	没有扫描到大文件	大容量ファイルはありません	No big files found
+files.hint	Top {0} 大文件（标红 = 相比上次快照新增）	大容量ファイル Top {0}（赤色 = 前回スナップショットからの新規）	Top {0} big files (red = new since the last snapshot)
+files.newMark	★ 新增：上次快照中没有这个文件	★ 新規：前回のスナップショットには存在しません	★ New: not present in the previous snapshot
+delta.title	增量对比	増減の比較	Change comparison
+delta.needTwo	需要两份快照才能对比：首次扫描已作为基线，下次扫描后即可显示增量	比較には 2 つのスナップショットが必要です。初回は基準として保存済みで、次回のスキャン後に表示できます	Two snapshots are needed: the first scan becomes the baseline and deltas appear after the next scan
+delta.growTitle	增长最多的文件夹 Top {0}（蓝色条 = 本次新增目录）	増加の多いフォルダー Top {0}（青いバー = 今回の新規フォルダー）	Folders that grew most · Top {0} (blue bar = new folder)
+delta.growEmpty	没有增长的目录	増加したフォルダーはありません	No folder grew
+delta.growEmptyNote	与上次快照相比各目录均未增大	前回のスナップショットから各フォルダーは増えていません	No folder grew since the last snapshot
+delta.newDirMark	★ 新增目录	★ 新規フォルダー	★ New folder
+delta.catTitle	文件类型增量	種類別の増減	Change by file type
+delta.catEmpty	没有变化	変化なし	No change
+delta.shrinkTitle	收缩最多的文件夹 Top {0}	減少の多いフォルダー Top {0}	Folders that shrank most · Top {0}
+delta.gone	已不存在	存在しません	Gone
+delta.newFiles	新出现的大文件	新しく現れた大容量ファイル	Newly appeared big files
+cats.title	文件类型分布（共 {0}）	種類別の内訳（全 {0}）	Space by file type (total {0})
+history.empty	还没有历史快照	履歴がありません	No snapshots yet
+history.title	历史快照（{0} 份，上方为可用空间趋势）	履歴（{0} 件、上部は空き容量の推移）	Snapshots ({0}; chart above shows free space)
+history.titleNoChart	历史快照（{0} 份）	履歴（{0} 件）	Snapshots ({0})
+history.chartTitle	可用空间趋势	空き容量の推移	Free space trend
+history.chartInfo	{0} 个快照 · 最高 {1} · 最低 {2}	{0} 件 · 最大 {1} · 最小 {2}	{0} snapshots · max {1} · min {2}
+err.registerClass	窗口类注册失败：{0}	ウィンドウクラスの登録に失敗：{0}	RegisterClassW failed: {0}
+err.createWindow	窗口创建失败：{0}	ウィンドウの作成に失敗：{0}	CreateWindowExW failed: {0}
+err.copyFailed	复制失败，可运行 --report 查看	コピーに失敗しました（--report で確認できます）	Copy failed - run --report instead
+msg.reportCopied	今日报告已复制到剪贴板	レポートをクリップボードにコピーしました	Report copied to the clipboard
+msg.noAdmin	未能取得管理员权限：卷影副本与系统文件占用信息将不可用。	管理者権限を取得できません：シャドウコピーとシステムファイルの情報は利用できません	Administrator rights not granted: shadow copy and system file data will be unavailable
+msg.autoStartOn	已开启开机自启	スタートアップに登録しました	Auto-start enabled
+msg.autoStartOff	已关闭开机自启	スタートアップから削除しました	Auto-start disabled
+msg.autoStartFailed	无法写入注册表，开机自启设置未生效	レジストリに書き込めず、自動起動を設定できませんでした	Could not write to the registry; auto-start was not applied
+tray.open	打开监控面板	パネルを開く	Open panel
+tray.rescan	立即扫描	今すぐスキャン	Rescan now
+tray.copyToday	复制今日报告	今日のレポートをコピー	Copy today's report
+tray.runAsAdmin	以管理员身份重新运行	管理者として再起動	Restart as administrator
+tray.autoStart	开机自启	スタートアップに登録	Start with Windows
+tray.openData	打开数据目录	データフォルダーを開く	Open data folder
+tray.exit	退出	終了	Exit
+tray.tooltip	{0} 可用 {1} · {2}	{0} 空き {1} · {2}	{0} free {1} · {2}
+advice.title	删除建议	削除の提案	Cleanup suggestions
+advice.emptyHint	暂无命中规则的优化项（本软件只给建议，不会自动删除任何文件）	該当する項目はありません（提案のみで、ファイルは削除しません）	Nothing matched (suggestions only - no file is ever deleted)
+advice.topTitle	删除建议 Top {0}（本软件不会自动删除任何文件，仅供参考）	削除の提案 Top {0}（削除は行いません。参考情報です）	Cleanup suggestions · Top {0} (nothing is deleted automatically - for reference only)
+advice.tip	操作建议：{0}	対処：{0}	How to: {0}
+advice.approx	（数值为近似值）	（数値は概算）	(approximate)
+advice.anyRisk	{0}风险	リスク：{0}	{0} risk
+advice.total	合计	合計	Total
+advice.totalLabel	以上建议合计可释放	上記をすべて実行すると解放できる容量	All of the above would free
+advice.totalNote	请逐条确认后再手动处理	項目ごとに確認してから手動で処理してください	Review each item before acting
+advice.count	（{0} 处）	（{0} 件）	({0})
+risk.low	低	低	Low
+risk.mid	中	中	Medium
+risk.high	高	高	High
+advice.rule.temp-user.name	用户临时目录	ユーザー一時フォルダー	User temp folder
+advice.rule.temp-user.tip	关闭正在运行的程序后，可删除该目录内的文件（系统会自动跳过占用中的文件）。	実行中のプログラムを終了してから、このフォルダー内のファイルを削除できます（使用中のファイルは自動的にスキップされます）。	Close running programs, then delete files in this folder (files in use are skipped automatically).
+advice.rule.temp-win.name	Windows 临时目录	Windows 一時フォルダー	Windows temp folder
+advice.rule.temp-win.tip	可删除其中的临时文件；部分占用中的文件会跳过。	一時ファイルを削除できます。使用中のファイルはスキップされます。	Temporary files here can be deleted; files in use are skipped.
+advice.rule.recycle.name	回收站	ごみ箱	Recycle Bin
+advice.rule.recycle.tip	清空回收站即可释放（资源管理器右键回收站 → 清空回收站）。	ごみ箱を空にすると解放されます（エクスプローラーで右クリック → ごみ箱を空にする）。	Empty the Recycle Bin to free this (right-click the Recycle Bin in Explorer).
+advice.rule.wer.name	Windows 错误报告	Windows エラー報告	Windows Error Reporting
+advice.rule.wer.tip	崩溃报告缓存，可直接删除。	クラッシュレポートのキャッシュです。削除して問題ありません。	Crash report cache - safe to delete.
+advice.rule.minidump.name	小型崩溃转储	ミニダンプ	Minidumps
+advice.rule.minidump.tip	蓝屏小型转储，删除不影响系统运行。	ブルースクリーンのミニダンプです。削除してもシステムの動作に影響しません。	Bug-check minidumps; deleting them does not affect the system.
+advice.rule.dmp-file.name	内存转储文件	メモリダンプファイル	Memory dump files
+advice.rule.dmp-file.tip	崩溃内存转储，删除会失去该次崩溃的分析现场。	クラッシュ時のメモリダンプです。削除するとそのクラッシュの解析情報が失われます。	Crash memory dumps; deleting them loses the analysis data for that crash.
+advice.rule.prefetch.name	预读文件	プリフェッチファイル	Prefetch files
+advice.rule.prefetch.tip	可清空，系统会按需重建。	削除できます。必要に応じて自動的に再作成されます。	Safe to clear; Windows rebuilds them as needed.
+advice.rule.chrome-cache.name	Chrome 缓存	Chrome キャッシュ	Chrome cache
+advice.rule.chrome-cache.tip	关闭 Chrome 后可删除；下次浏览会重新生成。	Chrome を終了してから削除できます。次回の閲覧時に再生成されます。	Close Chrome, then delete; it is rebuilt on the next browsing session.
+advice.rule.chrome-code.name	Chrome 代码缓存	Chrome コードキャッシュ	Chrome code cache
+advice.rule.chrome-code.tip	关闭 Chrome 后可删除。	Chrome を終了してから削除できます。	Close Chrome, then delete.
+advice.rule.edge-cache.name	Edge 缓存	Edge キャッシュ	Edge cache
+advice.rule.edge-cache.tip	关闭 Edge 后可删除。	Edge を終了してから削除できます。	Close Edge, then delete.
+advice.rule.firefox-cache.name	Firefox 缓存	Firefox キャッシュ	Firefox cache
+advice.rule.firefox-cache.tip	关闭 Firefox 后可删除。	Firefox を終了してから削除できます。	Close Firefox, then delete.
+advice.rule.npm-cache.name	npm 缓存	npm キャッシュ	npm cache
+advice.rule.npm-cache.tip	可执行 npm cache clean --force，或直接删除该目录。	npm cache clean --force を実行するか、このフォルダーを直接削除してください。	Run npm cache clean --force, or delete the folder.
+advice.rule.pnpm-store.name	pnpm 全局仓库	pnpm グローバルストア	pnpm store
+advice.rule.pnpm-store.tip	可执行 pnpm store prune 清理未引用的包。	pnpm store prune で参照されていないパッケージを削除できます。	Run pnpm store prune to drop unreferenced packages.
+advice.rule.yarn-cache.name	Yarn 缓存	Yarn キャッシュ	Yarn cache
+advice.rule.yarn-cache.tip	可执行 yarn cache clean。	yarn cache clean を実行してください。	Run yarn cache clean.
+advice.rule.pip-cache.name	pip 缓存	pip キャッシュ	pip cache
+advice.rule.pip-cache.tip	可执行 pip cache purge。	pip cache purge を実行してください。	Run pip cache purge.
+advice.rule.nuget.name	NuGet 包缓存	NuGet パッケージキャッシュ	NuGet package cache
+advice.rule.nuget.tip	可执行 dotnet nuget locals all --clear。	dotnet nuget locals all --clear を実行してください。	Run dotnet nuget locals all --clear.
+advice.rule.gradle.name	Gradle 缓存	Gradle キャッシュ	Gradle cache
+advice.rule.gradle.tip	可删除，下次构建会重新下载。	削除できます。次回のビルド時に再ダウンロードされます。	Safe to delete; the next build downloads them again.
+advice.rule.maven.name	Maven 仓库	Maven リポジトリ	Maven repository
+advice.rule.maven.tip	可删除不再使用的依赖；重新构建会重新下载。	不要な依存関係は削除できます。再ビルド時に再ダウンロードされます。	Unused dependencies can be deleted; they are downloaded again on rebuild.
+advice.rule.inetcache.name	系统网页缓存	システムの Web キャッシュ	System web cache
+advice.rule.inetcache.tip	可删除。	削除できます。	Safe to delete.
+advice.rule.crashdump.name	应用崩溃转储	アプリのクラッシュダンプ	App crash dumps
+advice.rule.crashdump.tip	可删除。	削除できます。	Safe to delete.
+advice.rule.wu-cache.name	Windows 更新缓存	Windows Update キャッシュ	Windows Update cache
+advice.rule.wu-cache.tip	建议用「设置 → 系统 → 存储 → 临时文件」清理，不建议直接手删。	「設定 → システム → ストレージ → 一時ファイル」からの削除をお勧めします。手動削除は避けてください。	Use Settings > System > Storage > Temporary files rather than deleting manually.
+advice.rule.winsxs.name	组件存储 WinSxS	コンポーネントストア WinSxS	Component store (WinSxS)
+advice.rule.winsxs.tip	请以管理员身份自行运行 DISM /Online /Cleanup-Image /StartComponentCleanup（本软件不会代执行）。	管理者として DISM /Online /Cleanup-Image /StartComponentCleanup を実行してください（本ソフトは代行しません）。	Run DISM /Online /Cleanup-Image /StartComponentCleanup as administrator yourself (this tool never does it for you).
+advice.rule.logs.name	系统日志	システムログ	System logs
+advice.rule.logs.tip	可清理旧日志；建议保留近期日志用于排查。	古いログは削除できます。調査用に最近のログは残すことをお勧めします。	Old logs can be cleared; keep recent ones for troubleshooting.
+advice.rule.downloads.name	下载目录	ダウンロードフォルダー	Downloads folder
+advice.rule.downloads.tip	人工确认后移走或删除大文件。	内容を確認してから、大きなファイルを移動または削除してください。	Check and then move or delete large files yourself.
+advice.rule.pkgcache.name	安装包缓存	インストーラーのキャッシュ	Installer package cache
+advice.rule.pkgcache.tip	部分软件的修复/卸载依赖它，删除可能导致无法卸载，务必谨慎。	一部のソフトの修復/アンインストールがこれに依存します。削除するとアンインストールできなくなる可能性があるため注意してください。	Repair/uninstall of some apps depends on it; deleting may break uninstall - be careful.
+advice.rule.docker.name	Docker 数据	Docker データ	Docker data
+advice.rule.docker.tip	请在 Docker Desktop 内清理镜像/容器，不要手删。	Docker Desktop 内でイメージ/コンテナを整理してください。手動削除は避けてください。	Prune images and containers inside Docker Desktop - do not delete manually.
+advice.rule.wsl.name	WSL 虚拟磁盘	WSL 仮想ディスク	WSL virtual disks
+advice.rule.wsl.tip	请在 WSL 内用 wsl --manage <distro> --set-sparse 或导出后清理，不要手删。	WSL 内で wsl --manage <distro> --set-sparse を使うか、エクスポート後に整理してください。手動削除は避けてください。	Use wsl --manage <distro> --set-sparse inside WSL, or export and clean up - do not delete manually.
+advice.rule.hiberfil.name	休眠文件 hiberfil.sys	休止状態ファイル hiberfil.sys	Hibernation file (hiberfil.sys)
+advice.rule.hiberfil.tip	若不需要休眠/快速启动，可由管理员执行 powercfg /h off（本软件不会代执行）。	休止状態/高速スタートアップが不要なら、管理者として powercfg /h off を実行してください（本ソフトは代行しません）。	If you do not need hibernation/fast startup, run powercfg /h off as administrator (this tool never does it for you).
+advice.rule.pagefile.name	虚拟内存 pagefile.sys	ページングファイル pagefile.sys	Page file (pagefile.sys)
+advice.rule.pagefile.tip	请在「系统属性 → 高级 → 虚拟内存」中调整，不建议直接删除。	「システムのプロパティ → 詳細設定 → 仮想メモリ」で調整してください。直接削除は避けてください。	Adjust it in System Properties > Advanced > Virtual memory - do not delete it directly.
+advice.rule.onedrive.name	OneDrive 本地占位	OneDrive のローカルプレースホルダー	OneDrive placeholders
+advice.rule.onedrive.tip	可右键文件选择「释放空间」（仅在线保留），不要直接删除同步中的文件。	ファイルを右クリックして「領域を解放」を選んでください（オンラインのみに保持）。同期中のファイルは削除しないでください。	Right-click files and choose Free up space (online-only); do not delete syncing files.
+alert.free-critical.title	C 盘剩余空间严重不足	C ドライブの空き容量が危険水準です	Free space critically low
+alert.free-critical.detail	仅剩 {0}（{1}），建议立即清理	残り {0}（{1}）。早急な整理をお勧めします	Only {0} left ({1}) - clean up now
+alert.free-warn.title	C 盘剩余空间偏低	C ドライブの空き容量が少なくなっています	Free space getting low
+alert.free-warn.detail	剩余 {0}，低于预警线 {1}	残り {0}、警告ライン {1} を下回りました	{0} left, below the warning threshold of {1}
+alert.free-ratio-critical.title	C 盘可用比例过低	C ドライブの空き比率が低すぎます	Free space ratio too low
+alert.free-ratio-critical.detail	可用比例仅 {0}	空き比率は {0} のみ	Only {0} free
+alert.free-ratio-warn.title	C 盘可用比例偏低	C ドライブの空き比率が低めです	Free space ratio low
+alert.free-ratio-warn.detail	可用比例 {0}	空き比率 {0}	{0} free
+alert.growth-critical.title	C 盘单日空间暴涨	C ドライブの使用量が 1 日で急増	Daily usage spike
+alert.growth-critical.detail	较上次扫描增加 {0}（{1} → {2}）	前回スキャンから {0} 増加（{1} → {2}）	Up {0} since the last scan ({1} → {2})
+alert.growth-warn.title	C 盘单日空间明显增长	C ドライブの使用量が 1 日で明らかに増加	Noticeable daily growth
+alert.growth-warn.detail	较上次扫描增加 {0}	前回スキャンから {0} 増加	Up {0} since the last scan
+alert.growth-ratio.title	C 盘单日增长比例异常	C ドライブの 1 日あたりの増加率が異常	Unusual daily growth rate
+alert.growth-ratio.detail	增长 {0}（{1}）	{0} 増加（{1}）	Grew {0} ({1})
+alert.cat.title	{0}类文件单日增长 {1}	{0} が 1 日で {1} 増加	{0} files grew by {1}
+alert.cat.detail	占单日总增长 {0} 的 {1}	1 日の増加 {0} のうち {1}	{1} of the day's {0} total growth
+alert.file.title	新增大文件	新規の大容量ファイル	New big file
+alert.file.detail	{0}  {1}  {2}	{0}  {1}  {2}	{0}  {1}  {2}
+alert.sys.title	{0} 变化 {1}	{0} が {1} 変化	{0} changed by {1}
+alert.na	不适用	該当なし	n/a
+verdict.headGrew	已用空间增加 {0}（{1}）。	使用量が {0} 増加しました（{1}）。	Used space grew by {0} ({1}).
+verdict.headShrank	已用空间减少 {0}（{1}）。	使用量が {0} 減少しました（{1}）。	Used space shrank by {0} ({1}).
+verdict.headSame	占用率基本不变。	使用率はほぼ変わりません。	Usage essentially unchanged.
+verdict.ratioFlat	占用率 {0}、基本持平	使用率 {0}、ほぼ横ばい	usage steady at {0}
+verdict.ratioMove	占用率 {0} → {1}	使用率 {0} → {1}	usage {0} → {1}
+verdict.cause	主因：{0}。	主な要因：{0}。	Main causes: {0}.
+verdict.sep	；	、	; 
+verdict.part.unaccounted	系统级/未归因 {0}{1}	システム領域/未分類 {0}{1}	system/unattributed {0}{1}
+verdict.part.dirGrew	{0} +{1}	{0} +{1}	{0} +{1}
+verdict.part.dirNew	新增目录 {0} +{1}	新規フォルダー {0} +{1}	new folder {0} +{1}
+verdict.part.catGrew	{0}类 +{1}	{0} +{1}	{0} +{1}
+verdict.part.newFile	新增大文件 {0} {1}	新規の大容量ファイル {0} {1}	new big file {0} {1}
+verdict.part.sysUp	{0} +{1}	{0} +{1}	{0} +{1}
+verdict.part.sysDown	{0} {1}	{0} {1}	{0} {1}
+cat.video	视频	動画	Video
+cat.image	图片	画像	Images
+cat.audio	音频	音声	Audio
+cat.doc	文档	文書	Documents
+cat.archive	压缩包	圧縮ファイル	Archives
+cat.installer	安装包	インストーラー	Installers
+cat.log	日志/转储	ログ/ダンプ	Logs & dumps
+cat.cache	缓存	キャッシュ	Cache
+cat.db	数据库	データベース	Databases
+cat.disk	磁盘镜像	ディスクイメージ	Disk images
+cat.dev	开发产物	開発成果物	Build artifacts
+cat.pkg	软件包	パッケージ	Packages
+cat.sys	系统文件	システムファイル	System files
+cat.temp	临时文件	一時ファイル	Temp files
+cat.other	其他	その他	Other
+sys.kind.system	系统文件	システムファイル	System file
+sys.kind.dump	崩溃转储	クラッシュダンプ	Crash dump
+sys.note.hiberfil	休眠文件：关闭休眠或快速启动后会消失（powercfg /h off）	休止状態ファイル：休止状態/高速スタートアップを無効にすると消えます（powercfg /h off）	Hibernation file: disappears after powercfg /h off
+sys.note.pagefile	虚拟内存文件：系统属性→高级→虚拟内存 中调整	ページングファイル：システムのプロパティ→詳細設定→仮想メモリ で調整	Page file: adjust in System Properties > Advanced > Virtual memory
+sys.note.swapfile	UWP 应用交换文件	UWP アプリのスワップファイル	UWP app swap file
+sys.note.memdump	系统崩溃内存转储：可删除（会失去崩溃分析现场）	システムのクラッシュダンプ：削除可能（解析情報は失われます）	System crash dump: safe to delete (loses crash analysis data)
+report.noSnapshot	（尚无快照，请先运行 CDiskWatch.exe --scan）	（スナップショットがありません。CDiskWatch.exe --scan を実行してください）	(no snapshot yet - run CDiskWatch.exe --scan)
+report.header	 C 盘容量监控报告    快照时间 {0}{1}	 C ドライブ容量レポート    スナップショット {0}{1}	 C: drive space report    snapshot {0}{1}
+report.vsBaseline	（与基线对比）	（基準と比較）	(vs baseline)
+report.vsPrev	（相对上次快照）	（前回のスナップショットと比較）	(vs previous snapshot)
+report.sec.overview	【空间概览】	【容量の概要】	[Space overview]
+report.total	总容量	総容量	Total
+report.used	已用	使用中	Used
+report.free	可用	空き	Free
+report.logical	文件逻辑合计 {0}   文件数 {1}	ファイル論理合計 {0}   ファイル数 {1}	Logical total {0}   files {1}
+report.unaccounted	未归因（非文件夹占用）	未分類（フォルダー外）	Unattributed (outside folders)
+report.hardlinkNote	※ 逻辑合计比实际占用多 {0}：WinSxS 等目录存在硬链接，同一份数据被重复计数	※ 論理合計が実使用量より {0} 多い：WinSxS などのハードリンクで同じデータを重複計上	Note: logical total exceeds real usage by {0} (hard links such as WinSxS are counted twice)
+report.shadow	卷影副本/还原点占用 {0}	シャドウコピー/復元ポイント {0}	Shadow copies / restore points {0}
+report.sec.sys	【系统级占用（不在普通文件夹里）】	【システム領域（通常のフォルダー外）】	[System-level usage (outside normal folders)]
+report.sec.cats	【文件类型分布】	【種類別の内訳】	[Space by file type]
+report.catLine	{0} {1}  {2}   {3} 个文件	{0} {1}  {2}   {3} ファイル	{0} {1}  {2}   {3} files
+report.sec.dirs	【大目录 Top {0}】（层级视图，同级可包含）	【大容量フォルダー Top {0}】（階層表示、同階層は包含関係あり）	[Largest folders · Top {0}] (hierarchical; entries may nest)
+report.dirLine	{0}  L{1}  {2}	{0}  L{1}  {2}	{0}  L{1}  {2}
+report.sec.files	【Top {0} 大文件】	【大容量ファイル Top {0}】	[Top {0} big files]
+report.fileLine	{0}. {1}  {2}  {3}	{0}. {1}  {2}  {3}	{0}. {1}  {2}  {3}
+report.sec.diff	【变化对比】	【増減の比較】	[Change comparison]
+report.diff.growing	▸ 增量文件夹 Top {0}	▸ 増加したフォルダー Top {0}	> Folders that grew · Top {0}
+report.growLine	{0}. +{1}  (现 {2})  {3}{4}	{0}. +{1}  (現在 {2})  {3}{4}	{0}. +{1}  (now {2})  {3}{4}
+report.newTag	[新增] 	[新規] 	[new] 
+report.diff.cats	▸ 文件类型增量	▸ 種類別の増減	> Change by file type
+report.catDeltaLine	{0} {1}   现 {2}	{0} {1}   現在 {2}	{0} {1}   now {2}
+report.diff.newFiles	▸ 新增大文件	▸ 新規の大容量ファイル	> New big files
+report.newFileLine	+{0}  {1}	+{0}  {1}	+{0}  {1}
+report.sec.alerts	【预警】	【警告】	[Alerts]
+report.alertLine	[{0}] {1} — {2}	[{0}] {1} — {2}	[{0}] {1} — {2}
+report.sec.advice	【删除建议】（本软件不会自动删除任何文件，仅供参考）	【削除の提案】（削除は行いません。参考情報です）	[Cleanup suggestions] (nothing is deleted automatically - for reference only)
+report.adviceLine	{0}  [{1}风险 {2}]  {3}	{0}  [リスク {1} {2}]  {3}	{0}  [{1} risk {2}]  {3}
+report.adviceRule	规则：{0} —— {1}	ルール：{0} —— {1}	Rule: {0} - {1}
+cli.scanning	正在全盘扫描 {0}: …（首次约 10~30 秒）	{0}: をスキャン中…（初回は約 10〜30 秒）	Scanning {0}: ... (10-30 s the first time)
+cli.scanDone	扫描完成，用时 {0}s，快照已保存：{1}	スキャン完了 {0} 秒、スナップショットの保存先：{1}	Scan finished in {0}s, snapshot saved to {1}
+cli.scanProgress	扫描完成：{0} 个文件，用时 {1}s	スキャン完了：{0} ファイル、{1} 秒	Scan complete: {0} files in {1}s
+cli.memInfo	内存：GC 堆 {0} MB，已提交 {1} MB，工作集 {2} MB，私有 {3} MB	メモリ：GC ヒープ {0} MB、コミット {1} MB、ワーキングセット {2} MB、プライベート {3} MB	Memory: GC heap {0} MB, committed {1} MB, working set {2} MB, private {3} MB
+cli.noSnapshot	尚无快照，请先运行 CDiskWatch.exe --scan	スナップショットがありません。CDiskWatch.exe --scan を実行してください	No snapshot yet - run CDiskWatch.exe --scan
+cli.elevateFailed	提权失败，将缺少卷影副本信息。	管理者権限の取得に失敗しました。シャドウコピーの情報は取得できません。	Elevation failed; shadow copy data will be missing.
+cli.scanCancelled	扫描已取消	スキャンを中止しました	Scan cancelled
+cli.readDiskFailed	读取磁盘信息失败：{0}	ディスク情報の取得に失敗：{0}	Failed to read disk info: {0}
+cli.analyzeFailed	分析失败：{0}	分析に失敗しました：{0}	Analysis failed: {0}

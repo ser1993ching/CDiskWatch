@@ -100,7 +100,7 @@ public sealed class Snapshot
     // ================= 序列化（GZip + BinaryWriter） =================
 
     internal const uint Magic = 0x53574443; // "CDWS"
-    internal const int Version = 3;
+    internal const int Version = 4;
     /// <summary>快照只保留 ≥1MB 的目录条目，避免历史仓库无限膨胀。</summary>
     public const long MinStoredDirBytes = 1L << 20;
 
@@ -129,14 +129,15 @@ public sealed class Snapshot
             w.Write(TopFiles.Count);
             foreach (var f in TopFiles) { w.Write(f.Path); w.Write(f.Bytes); w.Write(f.Modified.UtcTicks); }
 
+            // v4：种类/风险改为稳定枚举，文案在读取时按当前语言翻译（不再把中文写进快照）
             w.Write(SysFiles.Count);
-            foreach (var s in SysFiles) { w.Write(s.Path); w.Write(s.Bytes); w.Write(s.Kind); w.Write(s.Note); }
+            foreach (var s in SysFiles) { w.Write(s.Path); w.Write(s.Bytes); w.Write((byte)s.Flavor); }
 
             w.Write(Advice.Count);
             foreach (var a in Advice)
             {
-                w.Write(a.Path); w.Write(a.Bytes); w.Write(a.Rule); w.Write(a.Risk);
-                w.Write(a.Stars); w.Write(a.Tip); w.Write(a.IsFile); w.Write(a.IsRoot);
+                w.Write(a.Path); w.Write(a.Bytes); w.Write(a.RuleId); w.Write((byte)a.Risk);
+                w.Write(a.Stars); w.Write(a.IsFile); w.Write(a.IsRoot);
                 w.Write(a.Approximate); w.Write(a.MatchCount);
             }
         }
@@ -178,17 +179,60 @@ public sealed class Snapshot
                 s.TopFiles.Add(new FileStat { Path = r.ReadString(), Bytes = r.ReadInt64(), Modified = new DateTimeOffset(r.ReadInt64(), TimeSpan.Zero) });
             int ns = r.ReadInt32();
             for (int i = 0; i < ns; i++)
-                s.SysFiles.Add(new SysFileStat { Path = r.ReadString(), Bytes = r.ReadInt64(), Kind = r.ReadString(), Note = r.ReadString() });
-            if (ver >= 3)
+            {
+                string sysPath = r.ReadString();
+                long bytes = r.ReadInt64();
+                SysFlavor flavor;
+                if (ver >= 4) flavor = (SysFlavor)r.ReadByte();
+                else
+                {
+                    // v3 存的是中文「系统文件/崩溃转储」+ 中文备注 → 依据文件名还原种类
+                    _ = r.ReadString();
+                    _ = r.ReadString();
+                    flavor = SysFileStat.FlavorOf(Path.GetFileName(sysPath));
+                }
+                s.SysFiles.Add(new SysFileStat { Path = sysPath, Bytes = bytes, Flavor = flavor });
+            }
+            if (ver >= 4)
             {
                 int na = r.ReadInt32();
                 for (int i = 0; i < na; i++)
+                {
                     s.Advice.Add(new AdviceCard
                     {
-                        Path = r.ReadString(), Bytes = r.ReadInt64(), Rule = r.ReadString(), Risk = r.ReadString(),
-                        Stars = r.ReadInt32(), Tip = r.ReadString(), IsFile = r.ReadBoolean(), IsRoot = r.ReadBoolean(),
-                        Approximate = r.ReadBoolean(), MatchCount = r.ReadInt32(),
+                        Path = r.ReadString(),
+                        Bytes = r.ReadInt64(),
+                        RuleId = r.ReadString(),
+                        Risk = (RiskLevel)r.ReadByte(),
+                        Stars = r.ReadInt32(),
+                        IsFile = r.ReadBoolean(),
+                        IsRoot = r.ReadBoolean(),
+                        Approximate = r.ReadBoolean(),
+                        MatchCount = r.ReadInt32(),
                     });
+                }
+            }
+            else if (ver == 3)
+            {
+                int na = r.ReadInt32();
+                for (int i = 0; i < na; i++)
+                {
+                    string cardPath = r.ReadString();
+                    long bytes = r.ReadInt64();
+                    string legacyRule = r.ReadString();
+                    string legacyRisk = r.ReadString();
+                    int stars = r.ReadInt32();
+                    _ = r.ReadString();   // 旧 Tip（不再落盘）
+                    bool isFile = r.ReadBoolean(), isRoot = r.ReadBoolean(), approx = r.ReadBoolean();
+                    int match = r.ReadInt32();
+                    s.Advice.Add(new AdviceCard
+                    {
+                        Path = cardPath, Bytes = bytes,
+                        RuleId = AdviceEngine.IdFromLegacyName(legacyRule),
+                        Risk = AdviceEngine.RiskFromLegacy(legacyRisk),
+                        Stars = stars, IsFile = isFile, IsRoot = isRoot, Approximate = approx, MatchCount = match,
+                    });
+                }
             }
             s.ComputeRollups();
             return s;

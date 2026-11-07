@@ -3,33 +3,42 @@ using System.Text.RegularExpressions;
 
 namespace CDiskWatch;
 
+/// <summary>风险等级（稳定枚举，随快照落盘；显示文案在渲染时翻译）。</summary>
+public enum RiskLevel : byte { Low = 0, Mid = 1, High = 2 }
+
 public sealed class AdviceRule
 {
+    /// <summary>稳定 ID（同时是文案 key 的一部分：advice.rule.&lt;Id&gt;.name / .tip）。</summary>
     public string Id = "";
-    public string Name = "";
     /// <summary>路径通配符（支持 %ENV%，* 匹配任意字符，路径分隔符用反斜杠）。</summary>
     public string Pattern = "";
     /// <summary>低 / 中 / 高</summary>
-    public string Risk = "低";
+    public RiskLevel Risk = RiskLevel.Low;
     /// <summary>推荐度 1~3</summary>
     public int Stars = 2;
-    public string Tip = "";
     /// <summary>file = 匹配文件名；dir = 匹配目录路径。</summary>
     public string Kind = "dir";
+
+    public string Name => Loc.T("advice.rule." + Id + ".name");
+    public string Tip => Loc.T("advice.rule." + Id + ".tip");
 }
 
 public sealed class AdviceCard
 {
     public string Path = "";
     public long Bytes;
-    public string Rule = "";
-    public string Risk = "低";
+    public string RuleId = "";
+    public RiskLevel Risk = RiskLevel.Low;
     public int Stars = 2;
-    public string Tip = "";
     public bool IsFile;
     public bool IsRoot;
     public bool Approximate;
     public int MatchCount;
+
+    public string RuleName => AdviceEngine.RuleName(RuleId);
+    public string Tip => AdviceEngine.RuleTip(RuleId);
+    public string RiskLabel => Loc.T(Risk switch { RiskLevel.High => "risk.high", RiskLevel.Mid => "risk.mid", _ => "risk.low" });
+    public string RiskCode => Risk switch { RiskLevel.High => "high", RiskLevel.Mid => "medium", _ => "low" };
 }
 
 /// <summary>
@@ -52,68 +61,71 @@ public static class AdviceEngine
 
     static string Env(string s) => Environment.ExpandEnvironmentVariables(s);
 
+    /// <summary>规则名（按 RuleId 翻译；未知 Id 回退为空串，绝不显示内部 key）。</summary>
+    public static string RuleName(string id) => Known(id) ? Loc.T("advice.rule." + id + ".name") : "";
+
+    public static string RuleTip(string id) => Known(id) ? Loc.T("advice.rule." + id + ".tip") : "";
+
+    static bool Known(string id)
+    {
+        if (id.Length == 0) return false;
+        foreach (var r in Rules) if (r.Id == id) return true;
+        return false;
+    }
+
+    /// <summary>旧快照（v3）里存的是中文规则名 → 反查成 Id。</summary>
+    public static string IdFromLegacyName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "";
+        foreach (var r in Rules)
+        {
+            if (r.Id == name) return name;
+            if (Loc.TZh("advice.rule." + r.Id + ".name") == name) return r.Id;
+        }
+        return "";
+    }
+
+    /// <summary>旧快照（v3）里存的是「低/中/高」或 low/medium/high → 枚举。</summary>
+    public static RiskLevel RiskFromLegacy(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return RiskLevel.Low;
+        if (s == Loc.TZh("risk.high") || s.Equals("high", StringComparison.OrdinalIgnoreCase)) return RiskLevel.High;
+        if (s == Loc.TZh("risk.mid") || s.Equals("medium", StringComparison.OrdinalIgnoreCase)) return RiskLevel.Mid;
+        return RiskLevel.Low;
+    }
+
     static List<AdviceRule> Build() => new()
     {
-        new AdviceRule { Id="temp-user", Name="用户临时目录", Pattern="%LOCALAPPDATA%\\Temp", Risk="低", Stars=3,
-            Tip="关闭正在运行的程序后，可删除该目录内的文件（系统会自动跳过占用中的文件）。" },
-        new AdviceRule { Id="temp-win", Name="Windows 临时目录", Pattern="C:\\Windows\\Temp", Risk="低", Stars=3,
-            Tip="可删除其中的临时文件；部分占用中的文件会跳过。" },
-        new AdviceRule { Id="recycle", Name="回收站", Pattern="C:\\$Recycle.Bin", Risk="低", Stars=3,
-            Tip="清空回收站即可释放（资源管理器右键回收站 → 清空回收站）。" },
-        new AdviceRule { Id="wer", Name="Windows 错误报告", Pattern="C:\\ProgramData\\Microsoft\\Windows\\WER", Risk="低", Stars=3,
-            Tip="崩溃报告缓存，可直接删除。" },
-        new AdviceRule { Id="minidump", Name="小型崩溃转储", Pattern="C:\\Windows\\Minidump", Risk="低", Stars=3,
-            Tip="蓝屏小型转储，删除不影响系统运行。" },
-        new AdviceRule { Id="dmp-file", Name="内存转储文件", Pattern="*.dmp", Kind="file", Risk="低", Stars=3,
-            Tip="崩溃内存转储，删除会失去该次崩溃的分析现场。" },
-        new AdviceRule { Id="prefetch", Name="预读文件", Pattern="C:\\Windows\\Prefetch", Risk="低", Stars=2,
-            Tip="可清空，系统会按需重建。" },
-        new AdviceRule { Id="chrome-cache", Name="Chrome 缓存", Pattern="%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache", Risk="低", Stars=3,
-            Tip="关闭 Chrome 后可删除；下次浏览会重新生成。" },
-        new AdviceRule { Id="chrome-code", Name="Chrome 代码缓存", Pattern="%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache", Risk="低", Stars=3,
-            Tip="关闭 Chrome 后可删除。" },
-        new AdviceRule { Id="edge-cache", Name="Edge 缓存", Pattern="%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache", Risk="低", Stars=3,
-            Tip="关闭 Edge 后可删除。" },
-        new AdviceRule { Id="firefox-cache", Name="Firefox 缓存", Pattern="%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2", Risk="低", Stars=3,
-            Tip="关闭 Firefox 后可删除。" },
-        new AdviceRule { Id="npm-cache", Name="npm 缓存", Pattern="%LOCALAPPDATA%\\npm-cache", Risk="低", Stars=3,
-            Tip="可执行 npm cache clean --force，或直接删除该目录。" },
-        new AdviceRule { Id="pnpm-store", Name="pnpm 全局仓库", Pattern="%LOCALAPPDATA%\\pnpm\\store", Risk="低", Stars=3,
-            Tip="可执行 pnpm store prune 清理未引用的包。" },
-        new AdviceRule { Id="yarn-cache", Name="Yarn 缓存", Pattern="%LOCALAPPDATA%\\Yarn\\Cache", Risk="低", Stars=3,
-            Tip="可执行 yarn cache clean。" },
-        new AdviceRule { Id="pip-cache", Name="pip 缓存", Pattern="%LOCALAPPDATA%\\pip\\Cache", Risk="低", Stars=3,
-            Tip="可执行 pip cache purge。" },
-        new AdviceRule { Id="nuget", Name="NuGet 包缓存", Pattern="%USERPROFILE%\\.nuget\\packages", Risk="低", Stars=3,
-            Tip="可执行 dotnet nuget locals all --clear。" },
-        new AdviceRule { Id="gradle", Name="Gradle 缓存", Pattern="%USERPROFILE%\\.gradle\\caches", Risk="低", Stars=3,
-            Tip="可删除，下次构建会重新下载。" },
-        new AdviceRule { Id="maven", Name="Maven 仓库", Pattern="%USERPROFILE%\\.m2\\repository", Risk="中", Stars=2,
-            Tip="可删除不再使用的依赖；重新构建会重新下载。" },
-        new AdviceRule { Id="inetcache", Name="系统网页缓存", Pattern="%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache", Risk="低", Stars=2,
-            Tip="可删除。" },
-        new AdviceRule { Id="crashdump", Name="应用崩溃转储", Pattern="%LOCALAPPDATA%\\CrashDumps", Risk="低", Stars=3,
-            Tip="可删除。" },
-        new AdviceRule { Id="wu-cache", Name="Windows 更新缓存", Pattern="C:\\Windows\\SoftwareDistribution\\Download", Risk="中", Stars=2,
-            Tip="建议用「设置 → 系统 → 存储 → 临时文件」清理，不建议直接手删。" },
-        new AdviceRule { Id="winsxs", Name="组件存储 WinSxS", Pattern="C:\\Windows\\WinSxS", Risk="中", Stars=2,
-            Tip="请以管理员身份自行运行 DISM /Online /Cleanup-Image /StartComponentCleanup（本软件不会代执行）。" },
-        new AdviceRule { Id="logs", Name="系统日志", Pattern="C:\\Windows\\Logs", Risk="中", Stars=2,
-            Tip="可清理旧日志；建议保留近期日志用于排查。" },
-        new AdviceRule { Id="downloads", Name="下载目录", Pattern="%USERPROFILE%\\Downloads", Risk="中", Stars=2,
-            Tip="人工确认后移走或删除大文件。" },
-        new AdviceRule { Id="pkgcache", Name="安装包缓存", Pattern="C:\\ProgramData\\Package Cache", Risk="高", Stars=1,
-            Tip="部分软件的修复/卸载依赖它，删除可能导致无法卸载，务必谨慎。" },
-        new AdviceRule { Id="docker", Name="Docker 数据", Pattern="%LOCALAPPDATA%\\Docker", Risk="高", Stars=1,
-            Tip="请在 Docker Desktop 内清理镜像/容器，不要手删。" },
-        new AdviceRule { Id="wsl", Name="WSL 虚拟磁盘", Pattern="*.vhdx", Kind="file", Risk="高", Stars=1,
-            Tip="请在 WSL 内用 wsl --manage <distro> --set-sparse 或导出后清理，不要手删。" },
-        new AdviceRule { Id="hiberfil", Name="休眠文件 hiberfil.sys", Pattern="hiberfil.sys", Kind="file", Risk="中", Stars=2,
-            Tip="若不需要休眠/快速启动，可由管理员执行 powercfg /h off（本软件不会代执行）。" },
-        new AdviceRule { Id="pagefile", Name="虚拟内存 pagefile.sys", Pattern="pagefile.sys", Kind="file", Risk="高", Stars=1,
-            Tip="请在「系统属性 → 高级 → 虚拟内存」中调整，不建议直接删除。" },
-        new AdviceRule { Id="onedrive", Name="OneDrive 本地占位", Pattern="%USERPROFILE%\\OneDrive", Risk="中", Stars=2,
-            Tip="可右键文件选择「释放空间」（仅在线保留），不要直接删除同步中的文件。" },
+        new AdviceRule { Id="temp-user", Pattern="%LOCALAPPDATA%\\Temp", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="temp-win", Pattern="C:\\Windows\\Temp", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="recycle", Pattern="C:\\$Recycle.Bin", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="wer", Pattern="C:\\ProgramData\\Microsoft\\Windows\\WER", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="minidump", Pattern="C:\\Windows\\Minidump", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="dmp-file", Pattern="*.dmp", Kind="file", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="prefetch", Pattern="C:\\Windows\\Prefetch", Risk=RiskLevel.Low, Stars=2 },
+        new AdviceRule { Id="chrome-cache", Pattern="%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="chrome-code", Pattern="%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="edge-cache", Pattern="%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="firefox-cache", Pattern="%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="npm-cache", Pattern="%LOCALAPPDATA%\\npm-cache", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="pnpm-store", Pattern="%LOCALAPPDATA%\\pnpm\\store", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="yarn-cache", Pattern="%LOCALAPPDATA%\\Yarn\\Cache", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="pip-cache", Pattern="%LOCALAPPDATA%\\pip\\Cache", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="nuget", Pattern="%USERPROFILE%\\.nuget\\packages", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="gradle", Pattern="%USERPROFILE%\\.gradle\\caches", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="maven", Pattern="%USERPROFILE%\\.m2\\repository", Risk=RiskLevel.Mid, Stars=2 },
+        new AdviceRule { Id="inetcache", Pattern="%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache", Risk=RiskLevel.Low, Stars=2 },
+        new AdviceRule { Id="crashdump", Pattern="%LOCALAPPDATA%\\CrashDumps", Risk=RiskLevel.Low, Stars=3 },
+        new AdviceRule { Id="wu-cache", Pattern="C:\\Windows\\SoftwareDistribution\\Download", Risk=RiskLevel.Mid, Stars=2 },
+        new AdviceRule { Id="winsxs", Pattern="C:\\Windows\\WinSxS", Risk=RiskLevel.Mid, Stars=2 },
+        new AdviceRule { Id="logs", Pattern="C:\\Windows\\Logs", Risk=RiskLevel.Mid, Stars=2 },
+        new AdviceRule { Id="downloads", Pattern="%USERPROFILE%\\Downloads", Risk=RiskLevel.Mid, Stars=2 },
+        new AdviceRule { Id="pkgcache", Pattern="C:\\ProgramData\\Package Cache", Risk=RiskLevel.High, Stars=1 },
+        new AdviceRule { Id="docker", Pattern="%LOCALAPPDATA%\\Docker", Risk=RiskLevel.High, Stars=1 },
+        new AdviceRule { Id="wsl", Pattern="*.vhdx", Kind="file", Risk=RiskLevel.High, Stars=1 },
+        new AdviceRule { Id="hiberfil", Pattern="hiberfil.sys", Kind="file", Risk=RiskLevel.Mid, Stars=2 },
+        new AdviceRule { Id="pagefile", Pattern="pagefile.sys", Kind="file", Risk=RiskLevel.High, Stars=1 },
+        new AdviceRule { Id="onedrive", Pattern="%USERPROFILE%\\OneDrive", Risk=RiskLevel.Mid, Stars=2 },
     };
 
     // ================= 通配符 =================
@@ -236,10 +248,9 @@ public static class AdviceEngine
             {
                 Path = targets.Count == 1 ? targets[0] : first,
                 Bytes = total,
-                Rule = rule.Name,
+                RuleId = rule.Id,
                 Risk = rule.Risk,
                 Stars = rule.Stars,
-                Tip = rule.Tip,
                 MatchCount = targets.Count,
             });
         }
@@ -289,10 +300,9 @@ public static class AdviceEngine
         {
             Path = best ?? literal,
             Bytes = sum,
-            Rule = rule.Name,
+            RuleId = rule.Id,
             Risk = rule.Risk,
             Stars = rule.Stars,
-            Tip = rule.Tip,
             Approximate = true,
             MatchCount = count,
         };
@@ -310,8 +320,8 @@ public static class AdviceEngine
                 if (!seen.Add(f.Path)) continue;
                 cards.Add(new AdviceCard
                 {
-                    Path = f.Path, Bytes = f.Bytes, Rule = rule.Name, Risk = rule.Risk,
-                    Stars = rule.Stars, Tip = rule.Tip, IsFile = true,
+                    Path = f.Path, Bytes = f.Bytes, RuleId = rule.Id, Risk = rule.Risk,
+                    Stars = rule.Stars, IsFile = true,
                 });
             }
             foreach (var s in snap.SysFiles)
@@ -321,8 +331,8 @@ public static class AdviceEngine
                 if (!seen.Add(s.Path)) continue;
                 cards.Add(new AdviceCard
                 {
-                    Path = s.Path, Bytes = s.Bytes, Rule = rule.Name, Risk = rule.Risk,
-                    Stars = rule.Stars, Tip = rule.Tip, IsFile = true, IsRoot = true,
+                    Path = s.Path, Bytes = s.Bytes, RuleId = rule.Id, Risk = rule.Risk,
+                    Stars = rule.Stars, IsFile = true, IsRoot = true,
                 });
             }
         }

@@ -2,6 +2,7 @@
 #
 # 流程：
 #   1) 构建 Release（框架依赖，独立 dll）→ 在 dll 上跑 --selftest（含只读 IL 守卫）
+#   1.5) 多语言一致性检查（tools/check_lang.py：漏翻/写死中文/key 拼错）
 #   2) 单文件自包含发布（exe + 托盘状态图标）
 #   3) 发布产物跑一次 --selftest 冒烟
 #
@@ -22,6 +23,16 @@ $dll = Join-Path $root "CDiskWatch\bin\Release\net8.0-windows\CDiskWatch.dll"
 Write-Host "== 2/4 dll 自检（含只读 IL 守卫）==" -ForegroundColor Cyan
 dotnet $dll --selftest
 if ($LASTEXITCODE -ne 0) { throw "自检未通过，终止发布" }
+
+Write-Host "== 2.5/4 多语言一致性检查 ==" -ForegroundColor Cyan
+$py = Get-Command python -ErrorAction SilentlyContinue
+if ($py) {
+    $env:PYTHONIOENCODING = "utf-8"
+    & python (Join-Path $root "tools\check_lang.py")
+    if ($LASTEXITCODE -ne 0) { throw "多语言检查未通过，终止发布" }
+} else {
+    Write-Host "  （未找到 python，跳过）" -ForegroundColor Yellow
+}
 
 Write-Host "== 3/4 单文件发布 ==" -ForegroundColor Cyan
 if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }

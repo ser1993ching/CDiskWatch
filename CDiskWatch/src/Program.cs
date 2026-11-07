@@ -15,6 +15,8 @@ public static class Program
     public static int Main(string[] args)
     {
         _args = args;
+        InitLanguage(args);
+
         if (args.Contains("--selftest")) return SelfTest.Run();
         if (args.Contains("--scan")) return CliScan();
         if (args.Contains("--report")) return CliReport();
@@ -22,6 +24,32 @@ public static class Program
 
         return RunGui(args);
     }
+
+    /// <summary>语言优先级：--lang 参数 &gt; 环境变量 CDISKWATCH_LANG &gt; 配置 Lang（auto = 跟随系统）。</summary>
+    static void InitLanguage(string[] args)
+    {
+        string? code = ArgValue(args, "--lang");
+        if (string.IsNullOrWhiteSpace(code)) code = Environment.GetEnvironmentVariable("CDISKWATCH_LANG");
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            try { code = ConfigStore.Load().Lang; } catch { code = null; }
+        }
+        Loc.Load(code);
+    }
+
+    /// <summary>取形如 --lang en-US 或 --lang=en-US 的参数值。</summary>
+    static string? ArgValue(string[] args, string name)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i].Equals(name, StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length) return args[i + 1];
+            if (args[i].StartsWith(name + "=", StringComparison.OrdinalIgnoreCase)) return args[i].Substring(name.Length + 1);
+        }
+        return null;
+    }
+
+    /// <summary>--format json（默认 text）。</summary>
+    static bool JsonFormat => string.Equals(ArgValue(_args, "--format") ?? "", "json", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// 提权重启。清单里用 requireAdministrator 会让部分系统的 SxS 激活失败，
@@ -90,7 +118,7 @@ public static class Program
             // 提权时把原参数透传过去（如 --preview）
             string pass = string.Join(" ", args.Where(a => a != "--no-elevate")).Trim();
             if (TryElevate(pass, out _)) return 0;   // 已以管理员身份重新启动，本进程退出
-            Tray.Notify("C 盘容量监控", "未能取得管理员权限：卷影副本与系统文件占用信息将不可用。");
+            Tray.Notify(Loc.T("app.title"), Loc.T("msg.noAdmin"));
         }
 
         _cfg = ConfigStore.Load();
@@ -152,11 +180,11 @@ public static class Program
         if (!SystemUsage.IsAdmin() && !_args.Contains("--no-elevate"))
         {
             if (TryElevate("--scan", out var hp)) return WaitElevated(hp);
-            NativeOut.WriteLine("提权失败，将缺少卷影副本信息。");
+            NativeOut.WriteLine(Loc.T("cli.elevateFailed"));
         }
         _cfg = ConfigStore.Load();
         Monitor.Cfg = _cfg;
-        NativeOut.WriteLine("正在全盘扫描 " + _cfg.Drive + ": …（首次约 10~30 秒）");
+        NativeOut.WriteLine(Loc.F("cli.scanning", _cfg.Drive));
         var opt = new ScanOptions
         {
             Drive = _cfg.Drive,
@@ -173,10 +201,13 @@ public static class Program
         string path = Store.Save(snap);
         Monitor.ReleaseMemory();
 
-        NativeOut.WriteLine($"扫描完成，用时 {res.DurationMs / 1000.0:F1}s，快照已保存：{path}");
+        NativeOut.WriteLine(Loc.F("cli.scanDone", Fmt.Seconds(res.DurationMs / 1000.0), path));
         var gi = GC.GetGCMemoryInfo();
-        NativeOut.WriteLine($"内存：GC 堆 {GC.GetTotalMemory(false) / 1024 / 1024} MB，已提交 {gi.TotalCommittedBytes / 1024 / 1024} MB，工作集 {Environment.WorkingSet / 1024 / 1024} MB，私有 {System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64 / 1024 / 1024} MB");
-        NativeOut.WriteLine(Report.Build(snap, null, snap.Advice, new List<AlertRecord>(), false));
+        NativeOut.WriteLine(Loc.F("cli.memInfo", GC.GetTotalMemory(false) / 1024 / 1024, gi.TotalCommittedBytes / 1024 / 1024,
+            Environment.WorkingSet / 1024 / 1024, System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64 / 1024 / 1024));
+        NativeOut.WriteLine(JsonFormat
+            ? Report.BuildJson(snap, null, snap.Advice, new List<AlertRecord>(), false)
+            : Report.Build(snap, null, snap.Advice, new List<AlertRecord>(), false));
         return 0;
     }
 
@@ -188,13 +219,15 @@ public static class Program
         var latest = Store.Latest();
         if (latest == null)
         {
-            NativeOut.WriteLine("尚无快照，请先运行 CDiskWatch.exe --scan");
+            NativeOut.WriteLine(Loc.T("cli.noSnapshot"));
             return 1;
         }
         DiffResult? diff = baseline ? Monitor.DiffWithBaseline() : (Store.Previous() != null ? DiffEngine.Compare(Store.Previous()!, latest) : null);
         var advice = latest.Advice.Count > 0 ? latest.Advice : AdviceEngine.Evaluate(latest);
         var alerts = AlertEngine.Evaluate(latest, Store.Previous(), _cfg.ToAlertSettings(), useCooldown: false);
-        NativeOut.WriteLine(Report.Build(latest, diff, advice, alerts, baseline));
+        NativeOut.WriteLine(JsonFormat
+            ? Report.BuildJson(latest, diff, advice, alerts, baseline)
+            : Report.Build(latest, diff, advice, alerts, baseline));
         return 0;
     }
 
@@ -209,13 +242,13 @@ public static class Program
     public static void CopyReport()
     {
         var latest = Store.Latest();
-        if (latest == null) { Tray.Notify("C 盘容量监控", "尚无快照，请先扫描一次"); return; }
+        if (latest == null) { Tray.Notify(Loc.T("app.title"), Loc.T("cli.noSnapshot")); return; }
         var diff = Store.Previous() != null ? DiffEngine.Compare(Store.Previous()!, latest) : null;
         string text = Report.Build(latest, diff, AdviceEngine.Evaluate(latest), new List<AlertRecord>(), false);
         if (SetClipboardText(text))
-            Tray.Notify("C 盘容量监控", "今日报告已复制到剪贴板");
+            Tray.Notify(Loc.T("app.title"), Loc.T("msg.reportCopied"));
         else
-            Tray.Notify("C 盘容量监控", "复制失败，可运行 --report 查看");
+            Tray.Notify(Loc.T("app.title"), Loc.T("err.copyFailed"));
     }
 
     static bool SetClipboardText(string text)
@@ -267,7 +300,7 @@ public static class Program
             if (k == null)
             {
                 _cfg.AutoStart = !_cfg.AutoStart;   // 回滚
-                Tray.Notify("C 盘容量监控", "无法写入注册表，开机自启设置未生效");
+                Tray.Notify(Loc.T("app.title"), Loc.T("msg.autoStartFailed"));
                 return;
             }
             if (_cfg.AutoStart)
@@ -282,7 +315,7 @@ public static class Program
         }
         catch { }
         ConfigStore.Save(_cfg);
-        Tray.Notify("C 盘容量监控", _cfg.AutoStart ? "已开启开机自启" : "已关闭开机自启");
+        Tray.Notify(Loc.T("app.title"), Loc.T(_cfg.AutoStart ? "msg.autoStartOn" : "msg.autoStartOff"));
     }
 
     public static void OpenDataDir()

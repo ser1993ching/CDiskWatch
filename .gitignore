@@ -14,3 +14,6 @@ tools/*.png
 *.suo
 Thumbs.db
 desktop.ini
+
+# Python 临时缓存
+__pycache__/

@@ -105,7 +105,7 @@ public static class DiffEngine
             d.Cats.Add(new CatDelta
             {
                 Index = i,
-                Name = Cat.Names[i],
+                Name = Cat.Name(i),
                 NewBytes = nb,
                 OldBytes = ob,
                 Delta = nb - ob,
@@ -132,74 +132,88 @@ public static class DiffEngine
             var o = from.SysFiles.FirstOrDefault(x => string.Equals(x.Path, s.Path, StringComparison.OrdinalIgnoreCase));
             long ob = o?.Bytes ?? 0;
             if (ob != s.Bytes)
-                d.SysChanged.Add(new SysFileStat { Path = s.Path, Bytes = s.Bytes - ob, Kind = s.Kind, Note = s.Note });
+                d.SysChanged.Add(new SysFileStat { Path = s.Path, Bytes = s.Bytes - ob, Flavor = s.Flavor });
         }
 
         d.Verdict = BuildVerdict(d, from, to);
         return d;
     }
 
-    /// <summary>把数字翻译成人话。</summary>
+    /// <summary>把数字翻译成人话（模板化：先拼结构化条目，再按语言渲染，避免中文语序写死）。</summary>
     public static string BuildVerdict(DiffResult d, Snapshot from, Snapshot to)
     {
-        var sb = new System.Text.StringBuilder();
-        string used = Fmt.Bytes(Math.Abs(d.UsedDelta));
         // 变化极小时不要输出 "68.7% → 68.7%" 这种看起来像出错的说法
         double fromPct = d.RatioFrom * 100, toPct = d.RatioTo * 100;
         string ratio = Math.Abs(toPct - fromPct) < 0.05
-            ? $"占用率 {fromPct:F1}%、基本持平"
-            : $"占用率 {fromPct:F1}% → {toPct:F1}%";
-        // UsedDelta > 0 表示“已用变多、可用变少”，旧实现把两种情况写反了。
-        if (d.UsedDelta > 0) sb.Append($"已用空间增加 {used}（{ratio}）。");
-        else if (d.UsedDelta < 0) sb.Append($"已用空间减少 {used}（释放 {used}，{ratio}）。");
-        else sb.Append("占用率基本不变。");
+            ? Loc.F("verdict.ratioFlat", fromPct.ToString("F1"))
+            : Loc.F("verdict.ratioMove", fromPct.ToString("F1"), toPct.ToString("F1"));
+
+        string head;
+        if (d.UsedDelta > 0) head = Loc.F("verdict.headGrew", Fmt.Bytes(d.UsedDelta), ratio);
+        else if (d.UsedDelta < 0) head = Loc.F("verdict.headShrank", Fmt.Bytes(d.UsedDelta), ratio);
+        else head = Loc.T("verdict.headSame");
 
         var parts = new List<string>();
 
         foreach (var s in d.SysChanged)
         {
-            if (s.Bytes > 0) parts.Add($"{System.IO.Path.GetFileName(s.Path)} +{Fmt.Bytes(s.Bytes)}");
-            else parts.Add($"{System.IO.Path.GetFileName(s.Path)} {Fmt.Bytes(s.Bytes)}");
+            parts.Add(s.Bytes > 0
+                ? Loc.F("verdict.part.sysUp", System.IO.Path.GetFileName(s.Path), Fmt.Bytes(s.Bytes))
+                : Loc.F("verdict.part.sysDown", System.IO.Path.GetFileName(s.Path), Fmt.Bytes(s.Bytes)));
         }
 
-        var topDirs = d.Growing.Take(3).ToList();
-        foreach (var g in topDirs)
-            parts.Add($"{(g.IsNew ? "新增目录 " : "")}{g.Path} +{Fmt.Bytes(g.Delta)}");
+        foreach (var g in d.Growing.Take(3))
+        {
+            parts.Add(g.IsNew
+                ? Loc.F("verdict.part.dirNew", g.Path, Fmt.Bytes(g.Delta))
+                : Loc.F("verdict.part.dirGrew", g.Path, Fmt.Bytes(g.Delta)));
+        }
 
-        var topCats = d.Cats.Where(c => c.Delta > 0).Take(3).ToList();
-        foreach (var c in topCats)
-            parts.Add($"{c.Name}类 +{Fmt.Bytes(c.Delta)}");
+        foreach (var c in d.Cats.Where(c => c.Delta > 0).Take(3))
+            parts.Add(Loc.F("verdict.part.catGrew", c.Name, Fmt.Bytes(c.Delta)));
 
         if (d.NewFiles.Count > 0)
-            parts.Add($"新增大文件 {System.IO.Path.GetFileName(d.NewFiles[0].Path)} {Fmt.Bytes(d.NewFiles[0].Bytes)}");
+            parts.Add(Loc.F("verdict.part.newFile", System.IO.Path.GetFileName(d.NewFiles[0].Path), Fmt.Bytes(d.NewFiles[0].Bytes)));
 
         if (d.UnaccountedDelta != 0)
-            parts.Add($"系统级/未归因 {(d.UnaccountedDelta > 0 ? "+" : "")}{Fmt.Bytes(d.UnaccountedDelta)}");
+            parts.Add(Loc.F("verdict.part.unaccounted", d.UnaccountedDelta > 0 ? "+" : "", Fmt.Bytes(d.UnaccountedDelta)));
 
-        if (parts.Count > 0) sb.Append(" 主因：" + string.Join("；", parts) + "。");
-        return sb.ToString();
+        if (parts.Count == 0) return head;
+        return head + Loc.F("verdict.cause", string.Join(Loc.T("verdict.sep"), parts));
     }
 }
 
-/// <summary>统一的格式化工具（GB/MB/KB + 百分比）。</summary>
+/// <summary>统一的格式化工具（GB/MB/KB + 百分比 + 日期）。数字固定用不变量文化，避免跟随系统区域出现 "1,5 GB"。</summary>
 public static class Fmt
 {
+    static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
     public static string Bytes(long b)
     {
         long a = b < 0 ? -b : b;
         string sign = b < 0 ? "-" : "";
-        if (a >= 1L << 40) return sign + (a / 1024.0 / 1024 / 1024 / 1024).ToString("F2") + " TB";
-        if (a >= 1L << 30) return sign + (a / 1024.0 / 1024 / 1024).ToString("F2") + " GB";
-        if (a >= 1L << 20) return sign + (a / 1024.0 / 1024).ToString("F2") + " MB";
-        if (a >= 1L << 10) return sign + (a / 1024.0).ToString("F1") + " KB";
-        return sign + a + " B";
+        if (a >= 1L << 40) return sign + (a / 1024.0 / 1024 / 1024 / 1024).ToString("F2", Inv) + " TB";
+        if (a >= 1L << 30) return sign + (a / 1024.0 / 1024 / 1024).ToString("F2", Inv) + " GB";
+        if (a >= 1L << 20) return sign + (a / 1024.0 / 1024).ToString("F2", Inv) + " MB";
+        if (a >= 1L << 10) return sign + (a / 1024.0).ToString("F1", Inv) + " KB";
+        return sign + a.ToString(Inv) + " B";
     }
 
     public static string Size(long b) => Bytes(b);
 
-    public static string Pct(double r) => (r * 100).ToString("F1") + "%";
+    public static string Pct(double r) => (r * 100).ToString("F1", Inv) + "%";
 
-    public static string Time(DateTimeOffset t) => t.ToLocalTime().ToString("MM-dd HH:mm");
+    public static string Num(long n) => n.ToString("N0", Inv);
 
-    public static string TimeFull(DateTimeOffset t) => t.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+    /// <summary>快照时间（短）：中文/日文 MM-dd HH:mm，英文 yyyy-MM-dd HH:mm。</summary>
+    public static string Time(DateTimeOffset t) => t.ToLocalTime().ToString(Loc.DateShortPattern, Inv);
+
+    /// <summary>完整时间戳。</summary>
+    public static string TimeFull(DateTimeOffset t) => t.ToLocalTime().ToString(Loc.DateFullPattern, Inv);
+
+    /// <summary>带年份的分钟级时间戳（跨年场景用）。</summary>
+    public static string Stamp(DateTimeOffset t) => t.ToLocalTime().ToString("yyyy-MM-dd HH:mm", Inv);
+
+    /// <summary>秒数（保留 1 位小数）。</summary>
+    public static string Seconds(double s) => s.ToString("F1", Inv);
 }

@@ -9,6 +9,22 @@ public sealed class AlertRecord
     public string Title = "";
     public string Detail = "";
     public string Key = "";
+
+    /// <summary>稳定等级代码（JSON/脚本可依赖）。</summary>
+    public string LevelCode => Level switch
+    {
+        AlertLevel.Critical => "critical",
+        AlertLevel.Warning => "warning",
+        _ => "info",
+    };
+
+    /// <summary>等级显示名（跟随界面语言）。</summary>
+    public string LevelLabel => Loc.T(Level switch
+    {
+        AlertLevel.Critical => "alert.critical",
+        AlertLevel.Warning => "alert.warning",
+        _ => "alert.info",
+    });
 }
 
 public sealed class AlertSettings
@@ -39,20 +55,21 @@ public static class AlertEngine
         // ---- 剩余空间 ----
         if (latest.FreeBytes < s.FreeCriticalBytes)
             Fire(list, now, s, useCooldown, "free-critical", AlertLevel.Critical,
-                "C 盘剩余空间严重不足",
-                $"仅剩 {Fmt.Bytes(latest.FreeBytes)}（{Fmt.Pct(latest.TotalBytes > 0 ? (double)latest.FreeBytes / latest.TotalBytes : 0)}），建议立即清理");
+                Loc.T("alert.free-critical.title"),
+                Loc.F("alert.free-critical.detail", Fmt.Bytes(latest.FreeBytes),
+                      Fmt.Pct(latest.TotalBytes > 0 ? (double)latest.FreeBytes / latest.TotalBytes : 0)));
         else if (latest.FreeBytes < s.FreeWarnBytes)
             Fire(list, now, s, useCooldown, "free-warn", AlertLevel.Warning,
-                "C 盘剩余空间偏低",
-                $"剩余 {Fmt.Bytes(latest.FreeBytes)}，低于预警线 {Fmt.Bytes(s.FreeWarnBytes)}");
+                Loc.T("alert.free-warn.title"),
+                Loc.F("alert.free-warn.detail", Fmt.Bytes(latest.FreeBytes), Fmt.Bytes(s.FreeWarnBytes)));
 
         double freeRatio = latest.TotalBytes > 0 ? (double)latest.FreeBytes / latest.TotalBytes : 0;
         if (freeRatio < s.FreeCriticalRatio)
             Fire(list, now, s, useCooldown, "free-ratio-critical", AlertLevel.Critical,
-                "C 盘可用比例过低", $"可用比例仅 {Fmt.Pct(freeRatio)}");
+                Loc.T("alert.free-ratio-critical.title"), Loc.F("alert.free-ratio-critical.detail", Fmt.Pct(freeRatio)));
         else if (freeRatio < s.FreeWarnRatio)
             Fire(list, now, s, useCooldown, "free-ratio-warn", AlertLevel.Warning,
-                "C 盘可用比例偏低", $"可用比例 {Fmt.Pct(freeRatio)}");
+                Loc.T("alert.free-ratio-warn.title"), Loc.F("alert.free-ratio-warn.detail", Fmt.Pct(freeRatio)));
 
         if (prev == null) return list;
 
@@ -60,25 +77,26 @@ public static class AlertEngine
         long growth = latest.UsedBytes - prev.UsedBytes;
         if (growth > s.DailyGrowthCriticalBytes)
             Fire(list, now, s, useCooldown, "growth-critical", AlertLevel.Critical,
-                "C 盘单日空间暴涨", $"较上次扫描增加 {Fmt.Bytes(growth)}（{prev.Time:MM-dd HH:mm} → {latest.Time:MM-dd HH:mm}）");
+                Loc.T("alert.growth-critical.title"),
+                Loc.F("alert.growth-critical.detail", Fmt.Bytes(growth), Fmt.Time(prev.Time), Fmt.Time(latest.Time)));
         else if (growth > s.DailyGrowthWarnBytes)
             Fire(list, now, s, useCooldown, "growth-warn", AlertLevel.Warning,
-                "C 盘单日空间明显增长", $"较上次扫描增加 {Fmt.Bytes(growth)}");
+                Loc.T("alert.growth-warn.title"), Loc.F("alert.growth-warn.detail", Fmt.Bytes(growth)));
 
         double growthRatio = prev.UsedBytes > 0 ? (double)growth / prev.UsedBytes : 0;
         if (growthRatio > s.DailyGrowthWarnRatio && growth > 1L << 30)
             Fire(list, now, s, useCooldown, "growth-ratio", AlertLevel.Warning,
-                "C 盘单日增长比例异常", $"增长 {Fmt.Pct(growthRatio)}（{Fmt.Bytes(growth)}）");
+                Loc.T("alert.growth-ratio.title"), Loc.F("alert.growth-ratio.detail", Fmt.Pct(growthRatio), Fmt.Bytes(growth)));
 
         // ---- 类别增长 ----
         var diff = DiffEngine.Compare(prev, latest);
         foreach (var c in diff.Cats)
         {
             if (c.Delta < s.CategoryGrowthBytes) continue;
-            string share = growth > 0 ? Fmt.Pct((double)c.Delta / growth) : "不适用";
+            string share = growth > 0 ? Fmt.Pct((double)c.Delta / growth) : Loc.T("alert.na");
             Fire(list, now, s, useCooldown, "cat-" + c.Index, AlertLevel.Info,
-                $"{c.Name}类文件单日增长 {Fmt.Bytes(c.Delta)}",
-                $"占单日总增长 {Fmt.Bytes(growth)} 的 {share}");
+                Loc.F("alert.cat.title", c.Name, Fmt.Bytes(c.Delta)),
+                Loc.F("alert.cat.detail", Fmt.Bytes(growth), share));
         }
 
         // ---- 单个大文件 ----
@@ -86,7 +104,7 @@ public static class AlertEngine
         {
             if (f.Bytes < s.SingleFileBytes) continue;
             Fire(list, now, s, useCooldown, "file-" + f.Path, AlertLevel.Info,
-                "新增大文件", $"{f.Path}  {Fmt.Bytes(f.Bytes)}  {f.Modified:yyyy-MM-dd HH:mm}");
+                Loc.T("alert.file.title"), Loc.F("alert.file.detail", f.Path, Fmt.Bytes(f.Bytes), Fmt.Stamp(f.Modified)));
         }
 
         // ---- 系统文件突变 ----
@@ -94,7 +112,7 @@ public static class AlertEngine
         {
             if (Math.Abs(sf.Bytes) < s.SystemFileChangeBytes) continue;
             Fire(list, now, s, useCooldown, "sys-" + sf.Path, AlertLevel.Warning,
-                $"{System.IO.Path.GetFileName(sf.Path)} 变化 {Fmt.Bytes(sf.Bytes)}",
+                Loc.F("alert.sys.title", System.IO.Path.GetFileName(sf.Path), Fmt.Bytes(sf.Bytes)),
                 sf.Note);
         }
 

@@ -15,7 +15,7 @@ internal static class Tray
     public static void Init(IntPtr hwnd)
     {
         _hwnd = hwnd;
-        var nid = MakeNid("C 盘容量监控");
+        var nid = MakeNid(Loc.T("app.title"));
         _added = Win32.Shell_NotifyIconW(Win32.NIM_ADD, ref nid);
     }
 
@@ -57,6 +57,9 @@ internal static class Tray
         _icon = h;
     }
 
+    /// <summary>盘符（跟随配置，默认 C:）。</summary>
+    static string DriveLetter => Monitor.Cfg.Drive + ":";
+
     public static string StateOf(double ratio) =>
         ratio >= 0.93 ? "crit" : ratio >= 0.85 ? "high" : ratio >= 0.70 ? "warn" : "ok";
 
@@ -66,8 +69,8 @@ internal static class Tray
         if (!_added) return;
         EnsureIcon(StateOf(usedRatio));
         string tip = total > 0
-            ? $"C: 可用 {Fmt.Bytes(free)} · {Fmt.Pct((double)free / total)}"
-            : "C 盘容量监控";
+            ? Loc.F("tray.tooltip", Tray.DriveLetter, Fmt.Bytes(free), Fmt.Pct((double)free / total))
+            : Loc.T("app.title");
         if (tip.Length > 120) tip = tip[..120];   // szTip 上限 128，超出会静默失败
         var n = MakeNid(tip);
         Win32.Shell_NotifyIconW(Win32.NIM_MODIFY, ref n);
@@ -83,7 +86,7 @@ internal static class Tray
     public static void Notify(string title, string text)
     {
         if (!_added) return;
-        var n = MakeNid("C 盘容量监控");
+        var n = MakeNid(Loc.T("app.title"));
         n.uFlags |= Win32.NIF_INFO;
         n.szInfo = text;
         n.szInfoTitle = title;
@@ -119,16 +122,16 @@ internal static class Tray
     static void ShowMenu()
     {
         var menu = Win32.CreatePopupMenu();
-        Win32.AppendMenuW(menu, Win32.MF_STRING, 100, "打开监控面板");
-        Win32.AppendMenuW(menu, Win32.MF_STRING, 101, "立即扫描");
-        Win32.AppendMenuW(menu, Win32.MF_STRING, 102, "复制今日报告");
+        Win32.AppendMenuW(menu, Win32.MF_STRING, 100, Loc.T("tray.open"));
+        Win32.AppendMenuW(menu, Win32.MF_STRING, 101, Loc.T("tray.rescan"));
+        Win32.AppendMenuW(menu, Win32.MF_STRING, 102, Loc.T("tray.copyToday"));
         Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
         if (!SystemUsage.IsAdmin())
-            Win32.AppendMenuW(menu, Win32.MF_STRING, 103, "以管理员身份重新运行");
-        Win32.AppendMenuW(menu, Win32.MF_STRING | (Monitor.Cfg.AutoStart ? Win32.MF_CHECKED : 0u), 104, "开机自启");
-        Win32.AppendMenuW(menu, Win32.MF_STRING, 105, "打开数据目录");
+            Win32.AppendMenuW(menu, Win32.MF_STRING, 103, Loc.T("tray.runAsAdmin"));
+        Win32.AppendMenuW(menu, Win32.MF_STRING | (Monitor.Cfg.AutoStart ? Win32.MF_CHECKED : 0u), 104, Loc.T("tray.autoStart"));
+        Win32.AppendMenuW(menu, Win32.MF_STRING, 105, Loc.T("tray.openData"));
         Win32.AppendMenuW(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
-        Win32.AppendMenuW(menu, Win32.MF_STRING, 106, "退出");
+        Win32.AppendMenuW(menu, Win32.MF_STRING, 106, Loc.T("tray.exit"));
 
         Win32.GetCursorPos(out var pt);
         Win32.SetForegroundWindow(_hwnd);

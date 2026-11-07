@@ -6,6 +6,8 @@ namespace CDiskWatch;
 public class AppConfig
 {
     public string Drive { get; set; } = "C";
+    /// <summary>界面语言：auto（跟随系统）/ zh-CN / ja-JP / en-US，或外部语言包代码。</summary>
+    public string Lang { get; set; } = "auto";
     public int FreeSpacePollSeconds { get; set; } = 30;
     public string DailyScanTime { get; set; } = "02:00";
     public bool ScanOnStartup { get; set; } = true;
@@ -48,6 +50,8 @@ public class AppConfig
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(AppConfig))]
+[JsonSerializable(typeof(LangPackFile))]
+[JsonSerializable(typeof(ReportJson))]
 public partial class JsonCtx : JsonSerializerContext { }
 
 public static class Paths

@@ -69,6 +69,20 @@ powershell -File tools/wsprobe.ps1 -Minimized               # 验证 EmptyWorkin
 - 后台线程**不得直接动 UI / 托盘**：`Monitor` 的事件只做 `PostMessage`，
   真正刷新在 `WM_APP_TICK` / `WM_APP_SCAN_DONE` 里做。
 
+**多语言（改文案的唯一正确姿势）**
+
+- 文案**不在代码里**：全部在 `tools/lang/lang.tsv`（`key` + 中文 + 日文 + 英文）。
+  改文案流程：编辑 tsv → `python tools/gen_lang.py` → `dotnet build`。
+  **不要**直接改 `src/i18n/Tables.g.cs`（生成文件，会被覆盖）。
+- 代码里只写 `Loc.T("key")` / `Loc.F("key", args…)`；句子一律用 `{0}`/`{1}` 模板，
+  **禁止字符串拼接**（英文/日文语序不同，拼接翻译不回来）。
+- 会落盘的数据不许存文案：语言相关字段要用**稳定枚举/Id**（`RiskLevel`、`SysFlavor`、`RuleId`），
+  显示名在渲染时翻译；旧快照靠 `AdviceEngine.IdFromLegacyName()` 之类反查兼容。
+- 新增语言相关显示逻辑后，跑 `python tools/check_lang.py`（`build/publish.ps1` 会自动跑）：
+  它会抓「key 拼错」「文案表之外写死中文」「占位符不一致」。
+- 排版有预算：页签/按钮宽度是 `Theme.Measure` 实测的，自检里断言三语言都不溢出；
+  改长文案（尤其英文）后跑 `--selftest`，别只肉眼看中文。
+
 **内存（本轮已做的约束，别回退）**
 
 - 快照很贵：每份完整快照约占 **1.3 MB 托管内存**。历史列表/趋势图只用 `SnapHeader`（约 100 字节），

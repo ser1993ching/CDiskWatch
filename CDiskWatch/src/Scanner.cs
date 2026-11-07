@@ -97,6 +97,10 @@ public sealed class ScanResult
     public int UnreadableDirs;
     /// <summary>被排除规则跳过的目录数。</summary>
     public int ExcludedDirs;
+    /// <summary>因超过扩展路径缓冲区上限而跳过的目录数。</summary>
+    public int PathTooLongCount;
+    /// <summary>不完整结果不得作为历史快照基准。</summary>
+    public bool IsComplete => Error.Length == 0 && UnreadableDirs == 0 && PathTooLongCount == 0;
 
     /// <summary>占用率（0..1）。</summary>
     public double UsedRatio => TotalBytes > 0 ? (double)UsedBytes / TotalBytes : 0;
@@ -211,14 +215,21 @@ public static class Scanner
         unreadableDirs = 0;
         if (string.IsNullOrWhiteSpace(path)) return 0;
 
-        var pathBuf = new char[1024];
-        var patChars = new char[1100];
+        // Windows 扩展路径上限约 32K；为路径和末尾通配符预留空间。
+        var pathBuf = new char[32768];
+        var patChars = new char[32770];
         IntPtr findBuf = Marshal.AllocHGlobal(FindDataSize);
-        IntPtr patBuf = Marshal.AllocHGlobal(2200);
+        IntPtr patBuf = Marshal.AllocHGlobal(patChars.Length * sizeof(char));
         try
         {
             pathBuf[0] = (char)92; pathBuf[1] = (char)92; pathBuf[2] = '?'; pathBuf[3] = (char)92;
-            int n = Math.Min(path.Length, pathBuf.Length - 6);
+            if (path.Length + PathPrefixLen + 2 >= pathBuf.Length)
+            {
+                unreadable++;
+                unreadableDirs = unreadable;
+                return 0;
+            }
+            int n = path.Length;
             for (int i = 0; i < n; i++) pathBuf[PathPrefixLen + i] = path[i];
             int len = PathPrefixLen + n;
             if (len == PathPrefixLen || pathBuf[len - 1] != (char)92) pathBuf[len++] = (char)92;
@@ -268,6 +279,8 @@ public static class Scanner
                 if (size > 0) total += size;
             }
             while (Win32.FindNextFileW(h, findBuf));
+            // ERROR_NO_MORE_FILES (18) is the normal end of enumeration.
+            if (Marshal.GetLastWin32Error() != 18) unreadable++;
         }
         finally { Win32.FindClose(h); }
     }
@@ -293,11 +306,11 @@ public static class Scanner
         readonly string[] _exclude;
 
         // 复用的路径缓冲区（当前目录）与原生查找缓冲区
-        readonly char[] _path = new char[1024];
+        readonly char[] _path = new char[32768];
         int _pathLen;
         IntPtr _findBuf = IntPtr.Zero;      // WIN32_FIND_DATAW
         IntPtr _patBuf = IntPtr.Zero;       // 搜索模式 "path\*"
-        readonly char[] _patChars = new char[1100];
+        readonly char[] _patChars = new char[32770];
 
         readonly FileStat[] _top;
         int _topCount;
@@ -319,12 +332,17 @@ public static class Scanner
         public void Run(string root, CancellationToken ct)
         {
             _findBuf = Marshal.AllocHGlobal(FindDataSize);
-            _patBuf = Marshal.AllocHGlobal(2200);
+            _patBuf = Marshal.AllocHGlobal(_patChars.Length * sizeof(char));
             try
             {
                 // 使用 "\\?\" 扩展长度前缀（4 个字符：\ \ ? \），支持超过 MAX_PATH 的路径
                 _path[0] = '\\'; _path[1] = '\\'; _path[2] = '?'; _path[3] = '\\';
-                int n = Math.Min(root.Length, _path.Length - 6);
+                if (root.Length + PathPrefixLen + 2 >= _path.Length)
+                {
+                    _res.Error = "Scan root path exceeds the Windows extended-path limit.";
+                    return;
+                }
+                int n = root.Length;
                 for (int i = 0; i < n; i++) _path[PathPrefixLen + i] = root[i];
                 _pathLen = PathPrefixLen + n;
                 if (_pathLen == 0 || _path[_pathLen - 1] != '\\') _path[_pathLen++] = '\\';
@@ -389,7 +407,12 @@ public static class Scanner
                     if (isDir)
                     {
                         if ((attr & FileAttributeReparsePoint) != 0) continue;   // 跳过联接/符号链接，防环与重复统计
-                        if (savedLen + nameLen + 1 >= _path.Length) { _res.UnreadableDirs++; continue; }
+                        if (savedLen + nameLen + 1 >= _path.Length)
+                        {
+                            _res.PathTooLongCount++;
+                            _res.UnreadableDirs++;
+                            continue;
+                        }
                         for (int i = 0; i < nameLen; i++) _path[savedLen + i] = _nameBuf[i];
                         _path[savedLen + nameLen] = '\\';
                         _pathLen = savedLen + nameLen + 1;
@@ -435,6 +458,16 @@ public static class Scanner
                     }
                 }
                 while (Win32.FindNextFileW(h, _findBuf));
+
+                // ERROR_NO_MORE_FILES (18) is the normal end. Other errors mean
+                // that this directory was only partially enumerated.
+                int enumerationError = Marshal.GetLastWin32Error();
+                if (enumerationError != 18)
+                {
+                    _res.UnreadableDirs++;
+                    if (_res.Error.Length == 0)
+                        _res.Error = "Directory enumeration failed (Win32 error " + enumerationError + ").";
+                }
 
                 // 当前目录的聚合落账
                 if (dirBytes > 0)

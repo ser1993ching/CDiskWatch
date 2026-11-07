@@ -150,7 +150,7 @@ public static class DiffEngine
 
         string head;
         if (d.UsedDelta > 0) head = Loc.F("verdict.headGrew", Fmt.Bytes(d.UsedDelta), ratio);
-        else if (d.UsedDelta < 0) head = Loc.F("verdict.headShrank", Fmt.Bytes(d.UsedDelta), ratio);
+        else if (d.UsedDelta < 0) head = Loc.F("verdict.headShrank", Fmt.Bytes(d.UsedDelta == long.MinValue ? long.MaxValue : -d.UsedDelta), ratio);
         else head = Loc.T("verdict.headSame");
 
         var parts = new List<string>();

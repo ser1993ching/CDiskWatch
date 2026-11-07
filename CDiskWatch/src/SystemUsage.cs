@@ -42,15 +42,12 @@ public static class SystemUsage
     public static ShadowInfo QueryShadow(string drive = "C")
     {
         var info = new ShadowInfo();
-        char driveLetter = string.IsNullOrWhiteSpace(drive) ? 'C' : char.ToUpperInvariant(drive.Trim()[0]);
-        if (driveLetter < 'A' || driveLetter > 'Z')
-        {
-            info.Error = "Invalid drive letter.";
-            return info;
-        }
-        string driveSpec = driveLetter + ":";
         try
         {
+            char driveLetter = string.IsNullOrWhiteSpace(drive) ? 'C' : char.ToUpperInvariant(drive.Trim()[0]);
+            if (driveLetter < 'A' || driveLetter > 'Z')
+                throw new ArgumentException("Invalid drive letter.", nameof(drive));
+            string driveSpec = driveLetter + ":";
             string ps = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; " +
                         "$letter = '" + driveSpec + "'; " +
                         "$v = Get-CimInstance Win32_Volume -Filter \"DriveLetter='$letter'\" -ErrorAction Stop; " +

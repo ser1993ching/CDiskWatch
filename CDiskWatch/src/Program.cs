@@ -304,7 +304,7 @@ public static class Program
                 string exe = AppIcon.ExePath;
                 if (string.IsNullOrWhiteSpace(exe))
                     throw new InvalidOperationException("The application executable path is unavailable.");
-                k.SetValue("CDiskWatch", "\\"" + exe + "\\"");
+                k.SetValue("CDiskWatch", "\"" + exe + "\"");
             }
             else
             {

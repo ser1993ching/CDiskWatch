@@ -17,3 +17,6 @@ desktop.ini
 
 # Python 临时缓存
 __pycache__/
+
+# Git 本地状态（自动推送开关等）
+.git/ML_NO_AUTOPUSH

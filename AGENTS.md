@@ -25,7 +25,23 @@ powershell -File build/publish.ps1                          # 构建→dll 自�
 powershell -File tools/shot.ps1 -Out C:\temp\shot.png        # PrintWindow 截图（CDW_SCREEN=1 走屏幕拷贝）
 powershell -File tools/memprobe.ps1                         # 分阶段内存/句柄采样（含扫描期峰值）
 powershell -File tools/wsprobe.ps1 -Minimized               # 验证 EmptyWorkingSet / 托盘空闲占用
+bash tools/install-autopush-hook.sh                        # 安装仓库级自动推送钩子（SSH）
+bash tools/install-autopush-hook.sh --check                 # 查看钩子/远端状态
+ML_NO_AUTOPUSH=1 git commit -m "..."                       # 本次提交不自动推送
+ML_AUTOPUSH_DRYRUN=1 git commit -m "..."                   # 只演练不真推
 ```
+
+## Git 提交流程（自动推送，必须走 SSH）
+
+- 仓库自带 `tools/git-hooks/post-commit`：提交后自动推送到 **github / gitee** 两个远端。
+- **推送前强制把远端 URL 规范成 SSH**（`https://host/x.git` → `git@host:x.git`），
+  因为 HTTPS 在无 TTY 环境会弹用户名密码框并直接失败（本项目踩过）。
+- 安装：`bash tools/install-autopush-hook.sh`（幂等；会顺带把现有远端改写成 SSH）。
+- 全局 `core.hooksPath` 指向 `~/.githooks` 时，仓库 `.git/hooks/` 下的钩子不会被自动触发，
+  但**全局 `post-commit` 会主动转交执行仓库里的 `.git/hooks/post-commit`**，所以仓库钩子依然生效。
+- 关闭：`ML_NO_AUTOPUSH=1`（单次）/ `git config autoPush.enabled false`（本仓库）/
+  `.git/ML_NO_AUTOPUSH` 空文件（本仓库）。
+- 真分叉时不自动推送，只提示 `git pull --rebase` 或 `git push --force-with-lease`。
 
 数据目录 `%AppData%\CDiskWatch\`：`config.json`、`history\snap-*.snap`、`history\baseline.snap`。
 `--scan` / `--preview` 会真的扫描 C 盘并落快照（12~40 秒），调试时注意副作用。

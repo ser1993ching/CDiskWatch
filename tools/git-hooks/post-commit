@@ -1,0 +1,203 @@
+#!/bin/sh
+# =============================================================================
+#  CDiskWatch 仓库级 post-commit 钩子 —— 提交后自动推送（强制走 SSH）
+#
+#  为什么放在仓库里而不是只用全局钩子：
+#    全局钩子（~/.githooks/post-commit）在远端是 HTTPS 时会弹用户名/密码框，
+#    在无 TTY 的 CI / 自动化环境下直接失败（本项目就踩过：gitee 用 HTTPS 推送失败）。
+#    本钩子在推送前把 github / gitee 远端的 URL **强制规范化成 SSH**，
+#    因此不存在交互式认证失败的路径。
+#
+#  行为：
+#    1. 只处理 github.com / gitee.com 的远端；其他远端（含 upstream）跳过
+#    2. 推送前把该远端的 URL 规范成 git@host:owner/repo.git（SSH）
+#    3. 远端不可达 / 仓库不存在 → 跳过并提示，不让 commit 失败
+#    4. 远端没有新提交 → 跳过
+#    5. 本地与远端真分叉 → 不自动推送，只提示手动命令
+#    6. 刚 amend 了最后一次提交 → 用 --force-with-lease 安全强推
+#
+#  关闭方式（任选其一）：
+#    - 单次：  ML_NO_AUTOPUSH=1 git commit ...
+#    - 单仓库：git config autoPush.enabled false
+#    - 单仓库：在 .git/ 下放一个 ML_NO_AUTOPUSH 空文件
+#
+#  调试：  ML_AUTOPUSH_DRYRUN=1 git commit ...   # 只演练不真推
+#  安装：  bash tools/install-autopush-hook.sh
+# =============================================================================
+
+set -u
+
+say() { printf '[auto-push] %s\n' "$*" >&2; }
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+gitdir=$(git rev-parse --git-dir 2>/dev/null) || exit 0
+case "$gitdir" in /*) ;; *) gitdir="$repo_root/$gitdir" ;; esac
+
+# ---------------------------------------------------------------- 0. 开关
+[ "${ML_NO_AUTOPUSH:-0}" = "1" ] && exit 0
+[ -f "$gitdir/ML_NO_AUTOPUSH" ] && exit 0
+[ "$(git config --get autoPush.enabled 2>/dev/null)" = "false" ] && exit 0
+
+# ------------------------------------------------------------- 1. 当前分支
+branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || exit 0
+[ -n "$branch" ] || exit 0
+
+dry=""
+[ "${ML_AUTOPUSH_DRYRUN:-0}" = "1" ] && dry="--dry-run"
+
+# ---------------------------------------------------- 2. 解析远端 url 信息
+# 返回： provider(gitee|github) host slug
+parse_remote() {
+  u="$1"
+  case "$u" in
+    *github.com*) provider="github"; host="github.com" ;;
+    *gitee.com*)  provider="gitee";  host="gitee.com" ;;
+    *)            provider="";         host="" ;;
+  esac
+  [ -n "$provider" ] || return 1
+  s=${u#*://}
+  s=${s#git@}
+  s=${s#$host/}
+  s=${s#$host:}
+  s=${s%.git}
+  s=${s%/}
+  slug="$s"
+  [ -n "$slug" ] || return 1
+  return 0
+}
+
+# ------------------------------------------- 3. 把远端 URL 规范成 SSH
+# HTTPS → git@host:slug.git；已经是 SSH 的原样保留。
+# 这样推送时走 ~/.ssh/config 里的 IdentityFile，不会再弹用户名/密码。
+ensure_ssh_url() {
+  _remote="$1"; _provider="$2"; _slug="$3"
+  _url=$(git remote get-url "$_remote" 2>/dev/null) || return 0
+  case "$_url" in
+    git@*|ssh://*) return 0 ;;   # 已是 SSH
+  esac
+  case "$_url" in
+    *://*)
+      _ssh="git@$_provider.com:$_slug.git"
+      say "远端 $_remote 使用 HTTPS，切换为 SSH：$_ssh"
+      git remote set-url "$_remote" "$_ssh" 2>/dev/null || true
+      ;;
+  esac
+  return 0
+}
+
+# ---------------------------------------------- 4. 判断平台上仓库是否存在
+remote_exists() {
+  _remote="$1"; _provider="$2"; _slug="$3"
+  if git ls-remote "$_remote" >/dev/null 2>&1; then
+    return 0
+  fi
+  case "$_provider" in
+    github) api="https://api.github.com/repos/$_slug" ;;
+    gitee)  api="https://gitee.com/api/v5/repos/$_slug" ;;
+    *)      api="" ;;
+  esac
+  code=""
+  if [ -n "$api" ] && command -v curl >/dev/null 2>&1; then
+    code=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' "$api" 2>/dev/null || echo 000)
+  fi
+  if [ "$code" = "404" ]; then
+    say "跳过：$_provider 上找不到仓库 $_slug（尚未创建，或是私有仓库且未授权）——本次不推送"
+  else
+    say "跳过：$_remote 不可访问（仓库可能未创建或无权限）——本次不推送"
+  fi
+  return 1
+}
+
+# --------------------------------------------------------- 5. 推送结果处理
+report_fail() {
+  _remote="$1"; _branch="$2"; _out="$3"
+  say "推送失败：$_remote $_branch"
+  case "$_out" in
+    *"non-fast-forward"*|*"fetch first"*|*"rejected"*|*"behind"*)
+      say "    远端存在本地没有的提交（历史不相关或已分叉）。可选处理："
+      say "      git pull --rebase $_remote $_branch            # 合并远端提交"
+      say "      git push --force-with-lease $_remote $_branch  # 覆盖远端（谨慎）"
+      ;;
+  esac
+  printf '%s\n' "$_out" | sed 's/^/    /' >&2
+}
+
+# ------------------------------------------------- 6. 推到某一个具体的远端
+push_to_remote() {
+  _remote="$1"; _provider="$2"; _slug="$3"; _branch="$4"
+
+  ensure_ssh_url "$_remote" "$_provider" "$_slug"
+  remote_exists "$_remote" "$_provider" "$_slug" || return 0
+
+  # 该远端上本分支的跟踪引用（可能还不存在 = 该远端还没推过这个分支）
+  rref="refs/remotes/$_remote/$_branch"
+  ahead=0; behind=0
+  if git show-ref --verify --quiet "$rref"; then
+    ahead=$(git rev-list --count "$rref"..HEAD 2>/dev/null || echo 0)
+    behind=$(git rev-list --count HEAD.."$rref" 2>/dev/null || echo 0)
+    if [ "$ahead" = "0" ]; then
+      say "跳过：$_remote $_branch 没有新提交"
+      return 0
+    fi
+    if [ "$behind" != "0" ]; then
+      # 与该远端真分叉。只有一种情况可安全处理——刚 amend 了最后一次提交：
+      # amend 后的新提交与远端旧提交是「兄弟节点」（共享同一父提交），
+      # 即 HEAD^ == <rref>^。此时用 --force-with-lease 强推最安全：
+      # 若远端在此期间被别人动过，lease 会拒绝，不会覆盖他人提交。
+      is_amend=no
+      head_parent=$(git rev-parse --verify --quiet 'HEAD^' 2>/dev/null || echo "")
+      rref_parent=$(git rev-parse --verify --quiet "$rref^" 2>/dev/null || echo "")
+      head_prev=$(git rev-parse --verify --quiet 'HEAD~1' 2>/dev/null || echo "")
+      rref_own=$(git rev-parse --verify --quiet "$rref" 2>/dev/null || echo "")
+      if [ -n "$head_parent" ] && [ "$head_parent" = "$rref_parent" ]; then is_amend=yes; fi
+      if [ "$is_amend" = "no" ] && [ -n "$head_prev" ] && [ "$head_prev" = "$rref_own" ]; then is_amend=yes; fi
+
+      if [ "$is_amend" = "yes" ]; then
+        if ! out=$(git push $dry --force-with-lease="$_branch:$_rref_own" \
+                   "$_remote" "HEAD:refs/heads/$_branch" 2>&1); then
+          report_fail "$_remote" "$_branch" "$out"
+          return 0
+        fi
+        if [ -n "$dry" ]; then
+          say "试运行：$_remote $_branch 可推送（amend 改写，dry-run）"
+        else
+          say "已推送到 $_remote $_branch（amend 改写，已用 --force-with-lease）"
+        fi
+        return 0
+      fi
+
+      say "跳过：本地与 $_remote 已分叉（远端多出 $behind 个提交），未自动推送"
+      say "    请手动处理：git pull --rebase $_remote $_branch   或   git push --force-with-lease $_remote $_branch"
+      return 0
+    fi
+  fi
+
+  # 不使用 --set-upstream：避免把分支的跟踪关系抢到某一个远端上，
+  # 显式 refspec 推送，两个远端各自维护自己的跟踪引用。
+  if ! out=$(git push $dry "$_remote" "HEAD:refs/heads/$_branch" 2>&1); then
+    report_fail "$_remote" "$_branch" "$out"
+    return 0
+  fi
+  if [ -n "$dry" ]; then
+    say "试运行：$_remote $_branch 可推送（dry-run，未真正推送）"
+  else
+    say "已推送到 $_remote $_branch"
+  fi
+  return 0
+}
+
+# ------------------------------------------------------------ 7. 主流程
+count=0
+for r in $(git remote 2>/dev/null); do
+  [ "$r" = "upstream" ] && continue          # upstream 是别人的仓库，不自动推
+  u=$(git remote get-url "$r" 2>/dev/null) || continue
+  parse_remote "$u" || continue
+  count=$((count + 1))
+  say "检查远端 $r ($provider/$slug)"
+  push_to_remote "$r" "$provider" "$slug" "$branch"
+done
+
+if [ "$count" = "0" ]; then
+  say "跳过：当前仓库没有 GitHub / Gitee 远端"
+fi
+exit 0

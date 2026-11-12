@@ -205,7 +205,22 @@ CDiskWatch.exe --selftest
 dotnet build CDiskWatch/CDiskWatch.csproj -c Release      # 0 warnings
 CDiskWatch/bin/Release/net8.0-windows/CDiskWatch.exe --selftest
 powershell -File build/publish.ps1                        # single file, self-contained, trimmed
+bash tools/install-autopush-hook.sh                      # auto-push after commit (SSH)
 ```
+
+### 提交即推送 / Commit-and-push
+
+```bash
+bash tools/install-autopush-hook.sh          # install (idempotent; also rewrites remotes to SSH)
+bash tools/install-autopush-hook.sh --check   # show hook + remote status
+ML_NO_AUTOPUSH=1 git commit -m "..."         # skip auto-push once
+```
+
+**Every commit is pushed automatically to both GitHub and Gitee. Remotes are forced to SSH URLs**
+(`https://host/x.git` → `git@host:x.git`) so the push never stops to ask for a username or password
+in a non-interactive shell.
+**每次提交都会自动推送到 GitHub 与 Gitee 两个远端；推送前强制把远端 URL 规范成 SSH 地址**
+（`https://host/x.git` → `git@host:x.git`），因此在无交互终端的环境下也不会弹用户名密码而失败。
 
 **More documentation: [`docs/plan.md`](docs/plan.md) (design), [`docs/audit.md`](docs/audit.md) (41 defects found and fixed), [`docs/i18n-plan.md`](docs/i18n-plan.md) (trilingual architecture), [`docs/memory-plan.md`](docs/memory-plan.md) (memory optimisation with measurements).**
 **更多文档：[`docs/plan.md`](docs/plan.md)（设计）、[`docs/audit.md`](docs/audit.md)（审计出的 41 个缺陷及修复）、[`docs/i18n-plan.md`](docs/i18n-plan.md)（三语架构）、[`docs/memory-plan.md`](docs/memory-plan.md)（内存优化与实测）。**

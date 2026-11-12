@@ -195,6 +195,8 @@ public static class Program
         foreach (var e in _cfg.ExcludePaths) if (!string.IsNullOrWhiteSpace(e)) opt.ExcludePrefixes.Add(e.TrimEnd('\\'));
 
         var res = Scanner.Scan(opt, CancellationToken.None, m => NativeOut.WriteLine(m));
+        if (res.IsFatal) { NativeOut.WriteLine(Loc.F("status.scanFailed", res.Error.Length > 0 ? res.Error : Loc.T("status.scanFailedNoInfo"))); return 1; }
+        if (res.IsPartial) NativeOut.WriteLine(Loc.F("cli.scanPartial", res.UnreadableDirs, res.PathTooLongCount));
         var shadow = SystemUsage.QueryShadow();
         var snap = Snapshot.FromScan(res, shadow.UsedBytes);
         snap.Advice = AdviceEngine.Measure(snap);

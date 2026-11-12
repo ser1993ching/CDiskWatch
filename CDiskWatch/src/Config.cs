@@ -8,16 +8,12 @@ public class AppConfig
     public string Drive { get; set; } = "C";
     /// <summary>界面语言：auto（跟随系统）/ zh-CN / ja-JP / en-US，或外部语言包代码。</summary>
     public string Lang { get; set; } = "auto";
-    public int FreeSpacePollSeconds { get; set; } = 30;
     public string DailyScanTime { get; set; } = "02:00";
     public bool ScanOnStartup { get; set; } = true;
-    public bool OnlyWhenIdle { get; set; } = true;
     public int MaxDirLevel { get; set; } = 4;
     public int TopFileCount { get; set; } = 100;
     public bool AutoStart { get; set; }
     public bool StartMinimized { get; set; } = true;
-    public bool NotifyBalloon { get; set; } = true;
-    public bool ScanOnStartupAlways { get; set; } = true;
 
     public long FreeWarnGB { get; set; } = 20;
     public long FreeCriticalGB { get; set; } = 10;

@@ -99,8 +99,19 @@ public sealed class ScanResult
     public int ExcludedDirs;
     /// <summary>因超过扩展路径缓冲区上限而跳过的目录数。</summary>
     public int PathTooLongCount;
-    /// <summary>不完整结果不得作为历史快照基准。</summary>
+    /// <summary>完全没有跳过任何目录/路径的理想结果（大多数机器上做不到，仅用于自检与统计）。</summary>
     public bool IsComplete => Error.Length == 0 && UnreadableDirs == 0 && PathTooLongCount == 0;
+
+    /// <summary>致命失败：连卷信息都读不到，结果毫无意义，绝不能落盘。</summary>
+    public bool IsFatal => TotalBytes <= 0;
+
+    /// <summary>
+    /// 有跳过（无权限目录 / 超长路径 / 子目录枚举失败）：文件明细会偏小，
+    /// 但卷级「总容量 / 可用空间」来自 GetDiskFreeSpaceEx，仍然准确。
+    /// 这类结果**仍然要落盘并刷新界面**，只是打上 Partial 标记——
+    /// 否则只要有一个 System Volume Information 之类的目录读不到，界面就会永远停在旧数据上。
+    /// </summary>
+    public bool IsPartial => !IsFatal && (UnreadableDirs > 0 || PathTooLongCount > 0 || Error.Length > 0);
 
     /// <summary>占用率（0..1）。</summary>
     public double UsedRatio => TotalBytes > 0 ? (double)UsedBytes / TotalBytes : 0;
@@ -293,12 +304,16 @@ public static class Scanner
         new ReadOnlySpan<char>((char*)(buf + OffFileName), nameLen).CopyTo(destination);
     }
 
-    static void BuildSearchPattern(char[] path, int pathLen, char[] pattern, IntPtr nativePattern)
+    /// <summary>构造搜索模式 "&lt;path&gt;*"，返回写入的路径字符数（不含 '*'，供 cache/temp 判定复用）。</summary>
+    static int BuildSearchPattern(char[] path, int pathLen, char[] pattern, IntPtr nativePattern)
     {
-        Array.Copy(path, pattern, pathLen);
-        pattern[pathLen] = '*';
-        pattern[pathLen + 1] = '\0';
-        Marshal.Copy(pattern, 0, nativePattern, pathLen + 2);
+        // 末尾要留 '*' + 结束符，因此路径最多 pattern.Length - 3 个字符
+        int n = Math.Min(pathLen, pattern.Length - 3);
+        Array.Copy(path, pattern, n);
+        pattern[n] = '*';
+        pattern[n + 1] = '\0';
+        Marshal.Copy(pattern, 0, nativePattern, n + 2);
+        return n;
     }
 
     sealed class ScanContext
@@ -373,8 +388,8 @@ public static class Scanner
             }
             if (ct.IsCancellationRequested) { _res.Error = Loc.T("cli.scanCancelled"); return; }
 
-            // 构造搜索模式 "<当前路径>*"
-            BuildSearchPattern(_path, savedLen, _patChars, _patBuf);
+            // 构造搜索模式 "<当前路径>*"（plen = 路径部分长度，不含 '*'）
+            int plen = BuildSearchPattern(_path, savedLen, _patChars, _patBuf);
 
             IntPtr h = Win32.FindFirstFileW(_patBuf, _findBuf);
             if (h == InvalidHandleValue)

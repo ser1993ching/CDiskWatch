@@ -419,23 +419,31 @@ public sealed class MainWindow
             return;
         }
 
-        double usedRatio = s.UsedRatio;
+        // 卷级空间取「实时探针」（每秒刷新，扫描结束也会立即写入）：
+        // 快照数值只在探针读不到时兜底——否则重新扫描后概览页还显示旧数字。
+        long total = Monitor.TotalBytes > 0 ? Monitor.TotalBytes : s.TotalBytes;
+        long free = Monitor.FreeBytes > 0 ? Monitor.FreeBytes : s.FreeBytes;
+        long used = Math.Max(0, total - free);
+
+        double usedRatio = total > 0 ? (double)used / total : 0;
         uint c = usedRatio >= 0.93 ? Theme.Bad : usedRatio >= 0.85 ? Theme.Warn : Theme.Good;
-        double freeRatio = s.TotalBytes > 0 ? (double)s.FreeBytes / s.TotalBytes : 0;
+        double freeRatio = total > 0 ? (double)free / total : 0;
 
         _rows.Add(new Row
         {
-            Cells = new[] { Loc.T("hero.freeSpace"), Fmt.Bytes(s.FreeBytes), Loc.F("hero.freeDetail", Fmt.Pct(freeRatio), Fmt.Pct(usedRatio)) },
+            Cells = new[] { Loc.T("hero.freeSpace"), Fmt.Bytes(free), Loc.F("hero.freeDetail", Fmt.Pct(freeRatio), Fmt.Pct(usedRatio)) },
             Bar = usedRatio, BarColor = c, TextColor = c,
         });
         _rows.Add(new Row
         {
             Cells = new[]
             {
-                Loc.T("hero.usedSpace"), Fmt.Bytes(s.UsedBytes),
-                Loc.F("hero.capacityFull", Fmt.Bytes(s.TotalBytes), Fmt.Num(s.FileCount), Fmt.Num(s.DirCount)),
+                Loc.T("hero.usedSpace"), Fmt.Bytes(used),
+                Loc.F("hero.capacityFull", Fmt.Bytes(total), Fmt.Num(s.FileCount), Fmt.Num(s.DirCount)),
             },
         });
+        if (s.Partial)
+            _rows.Add(Block(Loc.F("overview.scanPartial", s.UnreadableDirs, s.PathTooLongCount), Theme.Warn));
 
         var diff = Monitor.Diff;
         if (diff == null)
@@ -1159,6 +1167,7 @@ public sealed class MainWindow
         Theme.HLine(hdc, _statusRc.L, _statusRc.R, _statusRc.T, Theme.Divider);
 
         uint dot = Monitor.StatusKindNow == Monitor.StatusKind.Failed ? Theme.Bad
+                 : Monitor.StatusKindNow == Monitor.StatusKind.Warn && !Monitor.Scanning ? Theme.Warn
                  : Monitor.Scanning ? Theme.Accent
                  : Theme.Good;
         int cy = (_statusRc.T + _statusRc.B) / 2;

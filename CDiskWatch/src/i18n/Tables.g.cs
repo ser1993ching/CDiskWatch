@@ -9,7 +9,7 @@ internal static class Tables
 {
     public static readonly string[] Codes = { "zh-CN", "ja-JP", "en-US" };
 
-    /// <summary>zh-CN（332 条）</summary>
+    /// <summary>zh-CN（336 条）</summary>
     public static readonly string[] ZhCn =
     {
         "app.title", "C 盘容量监控",
@@ -96,6 +96,10 @@ internal static class Tables
         "status.done", "扫描完成",
         "status.fromSnapshot", "已加载上次快照（{0}）",
         "status.doneWithWarn", "扫描完成（有告警：{0}）",
+        "status.donePartial", "扫描完成（{0} 个目录无权限、{1} 个路径过长，文件明细可能偏小）",
+        "status.scanFailedNoInfo", "无法读取磁盘信息",
+        "overview.scanPartial", "本次扫描不完整：{0} 个目录无权限、{1} 个路径过长 —— 文件明细可能偏小，可用/已用空间仍然准确",
+        "cli.scanPartial", "注意：{0} 个目录无权限、{1} 个路径过长，文件明细可能偏小",
         "state.noScanHint", "还没有扫描数据 —— 点击右上角「立即扫描」开始第一次全盘扫描",
         "state.noData", "尚无数据 —— 请先执行一次扫描",
         "state.noFiles", "本次扫描没有统计到文件",
@@ -346,7 +350,7 @@ internal static class Tables
         "folder.impact.extensions", "会移除已安装扩展，可能影响开发功能；重新安装需要下载，离线环境可能无法恢复。",
     };
 
-    /// <summary>ja-JP（332 条）</summary>
+    /// <summary>ja-JP（336 条）</summary>
     public static readonly string[] JaJp =
     {
         "app.title", "C ドライブ容量モニター",
@@ -433,6 +437,10 @@ internal static class Tables
         "status.done", "スキャン完了",
         "status.fromSnapshot", "前回のスナップショットを読み込みました（{0}）",
         "status.doneWithWarn", "スキャン完了（警告：{0}）",
+        "status.donePartial", "スキャン完了（{0} 件アクセス不可、{1} 件パス長超過。明細が小さめに出る場合があります）",
+        "status.scanFailedNoInfo", "ディスク情報を読み取れません",
+        "overview.scanPartial", "このスキャンは不完全です：{0} 件アクセス不可、{1} 件パス長超過 —— 明細は小さめの可能性がありますが、空き容量・使用量は正確です",
+        "cli.scanPartial", "注意：{0} 件アクセス不可、{1} 件パス長超過。明細が小さめになる場合があります",
         "state.noScanHint", "まだスキャン結果がありません —— 右上の「今すぐスキャン」から最初のスキャンを実行してください",
         "state.noData", "データがありません —— まずスキャンを実行してください",
         "state.noFiles", "このスキャンではファイルが集計されませんでした",
@@ -683,7 +691,7 @@ internal static class Tables
         "folder.impact.extensions", "インストール済み拡張が削除され、開発機能に影響します。再インストールにはダウンロードが必要で、オフラインでは復元できない場合があります。",
     };
 
-    /// <summary>en-US（332 条）</summary>
+    /// <summary>en-US（336 条）</summary>
     public static readonly string[] EnUs =
     {
         "app.title", "C: Drive Space Monitor",
@@ -770,6 +778,10 @@ internal static class Tables
         "status.done", "Scan complete",
         "status.fromSnapshot", "Loaded the previous snapshot ({0})",
         "status.doneWithWarn", "Scan complete (warnings: {0})",
+        "status.donePartial", "Scan complete ({0} folders unreadable, {1} paths too long; file details may be low)",
+        "status.scanFailedNoInfo", "Disk information unavailable",
+        "overview.scanPartial", "This scan is incomplete: {0} folders unreadable, {1} paths too long - file details may be low, but free/used space are accurate",
+        "cli.scanPartial", "Note: {0} folders unreadable, {1} paths too long; file details may be low",
         "state.noScanHint", "No scan data yet - click Rescan in the top right to run the first full scan",
         "state.noData", "No data yet - run a scan first",
         "state.noFiles", "No files were counted in this scan",

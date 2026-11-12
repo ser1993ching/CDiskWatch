@@ -45,7 +45,7 @@
 | **CLI & JSON report** — `--scan`, `--report`, `--report --format json`, `--winsxs`, `--selftest`, `--lang`. | **命令行与 JSON 报告** —— `--scan`、`--report`、`--report --format json`、`--winsxs`、`--selftest`、`--lang`。 |
 | **Read-only by construction** — an IL-level guard in the self-test fails the build if any delete/move API is ever called. | **只读红线** —— 自检用 IL 扫描断言"任何删除/移动类 API 一旦被调用即失败"。 |
 | **Zero dependencies** — pure Win32 P/Invoke + GDI, no WinForms/WPF/WebView/NuGet, no .NET runtime needed. | **零依赖** —— 纯 Win32 P/Invoke + GDI 自绘，无 WinForms/WPF/WebView/NuGet，**不需要安装 .NET 运行时**。 |
-| **Headless self-test** — 93 assertions including snapshot round-trip, font metrics and trilingual key/placeholder parity. | **无头自检** —— 93 项断言，含快照往返、字体测量与三语 key / 占位符一致性。 |
+| **Headless self-test** — 96 assertions including snapshot round-trip, font metrics and trilingual key/placeholder parity. | **无头自检** —— 96 项断言，含快照往返、字体测量与三语 key / 占位符一致性。 |
 
 ---
 
@@ -84,6 +84,9 @@
 **Free space, used ratio, the delta since the last scan, a one-sentence verdict and every category of hidden usage — all on one screen.**
 **可用空间、已用率、与上次扫描的增量、一句话结论，以及所有"看不见的占用"——一屏看完。**
 
+**Free/used space always comes from a 1-second probe, so it is correct the moment a scan ends; when some folders cannot be read (every machine has a few system folders), the page says so in orange instead of silently keeping the old numbers.**
+**可用/已用空间取自每秒刷新的实时探针，扫描一结束就更新；个别系统目录读不到时会用橙色明确标注「本次扫描不完整」，而不是默默沿用旧数据。**
+
 ### 目录 · 谁在涨 / Folders — who is growing
 
 ![目录](docs/images/folders-zh.png)
@@ -104,6 +107,13 @@
 
 **Each suggestion shows the path, the size, the risk level and a concrete instruction; the footer repeats that this tool never deletes anything.**
 **每条建议都给出路径、体积、风险等级与具体做法；页脚再次强调本软件不会自动删除任何文件。**
+
+### 大文件夹 · 谁该清理 / Large folders — who should clean up
+
+![大文件夹](docs/images/folders-large-zh.png)
+
+**An on-demand scan of developer caches, build outputs, chat-app data, personal folders and downloads, each with its size, its delete risk and an advice line.**
+**按需分析开发依赖缓存、构建产物、聊天软件数据、个人文件夹与下载目录，逐项给出占用、删除风险与处理建议。**
 
 ### 历史 · 可用空间趋势 / History — free-space trend
 
@@ -151,7 +161,7 @@ CDiskWatch.exe --report --baseline
 CDiskWatch.exe --report --lang en-US
 
 # 无头自检（89 项断言）
-# Headless self-test (89 assertions)
+# Headless self-test (96 assertions)
 CDiskWatch.exe --selftest
 ```
 

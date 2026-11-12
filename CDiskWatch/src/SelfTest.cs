@@ -80,6 +80,14 @@ public static class SelfTest
         Check(Fmt.Bytes(1L << 30) == "1.00 GB", "格式化：1GB");
         Check(Fmt.Bytes(-(1L << 20)) == "-1.00 MB", "格式化：负值");
 
+        // ===== 配置兼容：删掉的旧字段（FreeSpacePollSeconds / OnlyWhenIdle / NotifyBalloon /
+        // ScanOnStartupAlways 四个从未被读取的死字段）不得让旧 config.json 加载失败 =====
+        var legacyCfg = System.Text.Json.JsonSerializer.Deserialize(
+            "{\"Drive\":\"D\",\"DailyScanTime\":\"03:30\",\"FreeSpacePollSeconds\":30,\"OnlyWhenIdle\":true,\"NotifyBalloon\":true,\"ScanOnStartupAlways\":true}",
+            JsonCtx.Default.AppConfig);
+        Check(legacyCfg != null && legacyCfg.Drive == "D" && legacyCfg.DailyScanTime == "03:30",
+            "配置：旧版多余字段不影响加载", legacyCfg == null ? "反序列化为 null" : legacyCfg.Drive + " / " + legacyCfg.DailyScanTime);
+
         // ===== 扫描完整性：不完整结果不能进入快照历史 =====
         var scanQuality = new ScanResult();
         Check(scanQuality.IsComplete, "扫描质量：无错误结果视为完整");
@@ -91,6 +99,20 @@ public static class SelfTest
         scanQuality.PathTooLongCount = 0;
         scanQuality.Error = "enumeration failed";
         Check(!scanQuality.IsComplete, "扫描质量：根级错误使结果不完整");
+
+        // 关键区分：有跳过目录只是「不完整」（卷级容量仍准确），不是「失败」。
+        // 若把不完整当成失败而不落盘，只要有一个 System Volume Information 读不到，
+        // 界面就会永远停在旧快照的数字上（历史缺陷：重扫后仍显示旧可用空间）。
+        scanQuality.TotalBytes = 100L << 30;
+        Check(!scanQuality.IsFatal, "扫描质量：有跳过目录不算致命失败");
+        Check(scanQuality.IsPartial, "扫描质量：有跳过目录标记为不完整");
+        scanQuality.Error = "";
+        scanQuality.UnreadableDirs = 0;
+        scanQuality.PathTooLongCount = 0;
+        Check(!scanQuality.IsPartial && !scanQuality.IsFatal, "扫描质量：无跳过则可直接落盘");
+        scanQuality.TotalBytes = 0;
+        Check(scanQuality.IsFatal, "扫描质量：读不到卷信息判为致命失败");
+        Check(!scanQuality.IsPartial, "扫描质量：致命失败不再重复标不完整");
         Check(Fmt.Pct(0.315) == "31.5%", "格式化：百分比");
 
         // ===== 快照往返 =====
@@ -104,6 +126,7 @@ public static class SelfTest
                 TotalBytes = 100L << 30, FreeBytes = 40L << 30, UsedBytes = 60L << 30,
                 LogicalBytes = 55L << 30, UnaccountedBytes = 5L << 30,
                 FileCount = 1234, Drive = "C",
+                Partial = true, UnreadableDirs = 3, PathTooLongCount = 1,
             };
             snap.CatBytes[(int)FileCategory.Video] = 12L << 30;
             snap.CatCounts[(int)FileCategory.Video] = 7;
@@ -121,6 +144,7 @@ public static class SelfTest
                 Check(back.Dirs.Count == 1 && back.Dirs[0].Path == "C:\\Users\\Bob\\Videos", "快照：目录条目一致");
                 Check(back.TopFiles.Count == 1 && back.TopFiles[0].Bytes == 12L << 30, "快照：大文件条目一致");
                 Check(back.SysFiles.Count == 1 && back.SysFiles[0].Flavor == SysFlavor.Hiberfil, "快照：系统文件条目一致");
+                Check(back.Partial && back.UnreadableDirs == 3 && back.PathTooLongCount == 1, "快照：不完整标记可往返");
                 Check(back.Rollups.Count > 0, "快照：祖先汇总已重算");
 
                 // 轻量头：历史页只读这个（否则每份完整快照要占 ~1.3MB 内存）
@@ -132,6 +156,7 @@ public static class SelfTest
                     Check(head.FreeBytes == 40L << 30, "快照头：可用字节一致");
                     Check(head.Time == snap.Time, "快照头：时间一致");
                     Check(head.DirCount == 0 && head.FileCount == 1234, "快照头：计数一致");
+                    Check(head.Partial && head.UnreadableDirs == 3, "快照头：不完整标记可读");
                 }
 
                 // 祖先汇总必须包含「分区键自身所在层级」，否则目录直属文件会被漏掉
@@ -313,8 +338,8 @@ public static class SelfTest
 
         // 排版预算：页签 / 顶栏按钮在每种语言下都必须放得下（自绘 UI 没有弹性布局，靠这个兜底）
         var overflow = new List<string>();
-        string[] tabKeys = { "tab.overview", "tab.dirs", "tab.files", "tab.delta", "tab.cats", "tab.advice", "tab.history" };
-        string[] actKeys = { "action.dataDir", "action.copyReport", "action.rescan" };
+        string[] tabKeys = { "tab.overview", "tab.dirs", "tab.files", "tab.delta", "tab.cats", "tab.advice", "tab.folderAnalysis", "tab.history" };
+        string[] actKeys = { "action.dataDir", "action.copyReport", "action.rescan", "action.folderScan" };
         foreach (string code in Tables.Codes)
         {
             Loc.Load(code);

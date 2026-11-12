@@ -82,6 +82,10 @@ status.measuring	正在测量可优化目录…	整理対象フォルダーを�
 status.done	扫描完成	スキャン完了	Scan complete
 status.fromSnapshot	已加载上次快照（{0}）	前回のスナップショットを読み込みました（{0}）	Loaded the previous snapshot ({0})
 status.doneWithWarn	扫描完成（有告警：{0}）	スキャン完了（警告：{0}）	Scan complete (warnings: {0})
+status.donePartial	扫描完成（{0} 个目录无权限、{1} 个路径过长，文件明细可能偏小）	スキャン完了（{0} 件アクセス不可、{1} 件パス長超過。明細が小さめに出る場合があります）	Scan complete ({0} folders unreadable, {1} paths too long; file details may be low)
+status.scanFailedNoInfo	无法读取磁盘信息	ディスク情報を読み取れません	Disk information unavailable
+overview.scanPartial	本次扫描不完整：{0} 个目录无权限、{1} 个路径过长 —— 文件明细可能偏小，可用/已用空间仍然准确	このスキャンは不完全です：{0} 件アクセス不可、{1} 件パス長超過 —— 明細は小さめの可能性がありますが、空き容量・使用量は正確です	This scan is incomplete: {0} folders unreadable, {1} paths too long - file details may be low, but free/used space are accurate
+cli.scanPartial	注意：{0} 个目录无权限、{1} 个路径过长，文件明细可能偏小	注意：{0} 件アクセス不可、{1} 件パス長超過。明細が小さめになる場合があります	Note: {0} folders unreadable, {1} paths too long; file details may be low
 state.noScanHint	还没有扫描数据 —— 点击右上角「立即扫描」开始第一次全盘扫描	まだスキャン結果がありません —— 右上の「今すぐスキャン」から最初のスキャンを実行してください	No scan data yet - click Rescan in the top right to run the first full scan
 state.noData	尚无数据 —— 请先执行一次扫描	データがありません —— まずスキャンを実行してください	No data yet - run a scan first
 state.noFiles	本次扫描没有统计到文件	このスキャンではファイルが集計されませんでした	No files were counted in this scan

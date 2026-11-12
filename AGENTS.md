@@ -105,7 +105,10 @@ powershell -File tools/wsprobe.ps1 -Minimized               # 验证 EmptyWorkin
 - 每日扫描：`AutoScanDue()`（到点 + 今天没扫过 + 不在扫描中），不要再用 `_dailyDone` 那种布尔量。
 - `Monitor.History()` 有缓存；改动快照仓库后要 `_historyCache = null`（`RefreshDerived` 里已做）。
 - 对比逻辑里 `UsedDelta > 0` 表示**已用变多、空间变少**；结论文案方向别写反。
-- 快照序列化有 `Version`（当前 3）：改格式必须升版本并保持旧版本可读（`Load` 里按 `ver` 分支）。
+- 快照序列化有 `Version`（当前 5）：改格式必须升版本并保持旧版本可读（`Load` 里按 `ver` 分支）。
+  v5 起头部区带 `Partial` / `UnreadableDirs` / `PathTooLongCount`：
+  **扫描有目录读不到（几乎每台机器都有 `System Volume Information`）只是「不完整」，不是失败**——
+  必须照常落盘并刷新界面，否则界面会永远停在旧快照上（历史缺陷，见 `docs/audit.md` 2026-11-12）。
 
 ## 改 UI 的推荐流程
 

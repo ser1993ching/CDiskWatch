@@ -13,7 +13,6 @@ internal static class Theme
 {
     // ===== 画布 / 卡片 =====
     public static readonly uint Canvas = Win32.Rgb(0xF2, 0xF5, 0xF9);
-    public static readonly uint CanvasTop = Win32.Rgb(0xF7, 0xF9, 0xFC);
     public static readonly uint Surface = Win32.Rgb(0xFF, 0xFF, 0xFF);
     public static readonly uint SurfaceAlt = Win32.Rgb(0xF7, 0xF9, 0xFC);
     public static readonly uint SurfaceBorder = Win32.Rgb(0xDE, 0xE4, 0xEE);
@@ -47,10 +46,8 @@ internal static class Theme
     public const uint AlignLeft = Win32.DT_SINGLELINE | Win32.DT_LEFT | Win32.DT_VCENTER | Win32.DT_END_ELLIPSIS | Win32.DT_NOPREFIX;
     public const uint AlignRight = Win32.DT_SINGLELINE | Win32.DT_RIGHT | Win32.DT_VCENTER | Win32.DT_END_ELLIPSIS | Win32.DT_NOPREFIX;
     public const uint AlignCenter = Win32.DT_SINGLELINE | Win32.DT_CENTER | Win32.DT_VCENTER | Win32.DT_END_ELLIPSIS | Win32.DT_NOPREFIX;
-    public const uint AlignLeftNoEllipsis = Win32.DT_SINGLELINE | Win32.DT_LEFT | Win32.DT_VCENTER | Win32.DT_NOPREFIX;
     /// <summary>路径列专用：省略中间段、保留文件名所在尾部（比 END_ELLIPSIS 更有信息量）。</summary>
     public const uint AlignLeftPath = Win32.DT_SINGLELINE | Win32.DT_LEFT | Win32.DT_VCENTER | Win32.DT_PATH_ELLIPSIS | Win32.DT_NOPREFIX;
-    public const uint AlignRightNoEllipsis = Win32.DT_SINGLELINE | Win32.DT_RIGHT | Win32.DT_VCENTER | Win32.DT_NOPREFIX;
 
     /// <summary>
     /// 创建 UI 字体。

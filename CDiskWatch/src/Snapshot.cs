@@ -18,6 +18,12 @@ public sealed class Snapshot
     public long ShadowUsedBytes;
     /// <summary>逻辑合计超出实际占用的部分（通常来自硬链接重复计数，如 WinSxS）。</summary>
     public long HardlinkBytes;
+    /// <summary>本次扫描有跳过（无权限目录 / 超长路径）：文件明细偏小，卷级容量仍准确。</summary>
+    public bool Partial;
+    /// <summary>因权限/IO 失败无法枚举的目录数（Partial 时有效）。</summary>
+    public int UnreadableDirs;
+    /// <summary>因路径超过缓冲区上限而跳过的目录数（Partial 时有效）。</summary>
+    public int PathTooLongCount;
     public long[] CatBytes = new long[Cat.Count];
     public long[] CatCounts = new long[Cat.Count];
     public List<DirStat> Dirs = new();
@@ -48,6 +54,9 @@ public sealed class Snapshot
             TempBytes = r.TempBytes,
             ShadowUsedBytes = shadowUsed,
             HardlinkBytes = r.HardlinkBytes,
+            Partial = r.IsPartial,
+            UnreadableDirs = r.UnreadableDirs,
+            PathTooLongCount = r.PathTooLongCount,
             Drive = r.Drive,
         };
         for (int i = 0; i < Cat.Count; i++)
@@ -100,7 +109,7 @@ public sealed class Snapshot
     // ================= 序列化（GZip + BinaryWriter） =================
 
     internal const uint Magic = 0x53574443; // "CDWS"
-    internal const int Version = 4;
+    internal const int Version = 5;   // v5：新增 Partial / UnreadableDirs / PathTooLongCount
     /// <summary>快照只保留 ≥1MB 的目录条目，避免历史仓库无限膨胀。</summary>
     public const long MinStoredDirBytes = 1L << 20;
 
@@ -121,6 +130,8 @@ public sealed class Snapshot
             w.Write(LogicalBytes); w.Write(UnaccountedBytes);
             w.Write(FileCount); w.Write(DirCount);
             w.Write(CacheBytes); w.Write(TempBytes); w.Write(ShadowUsedBytes); w.Write(HardlinkBytes);
+            // v5：紧跟头部区的三个标量，SnapHeader 也只解析到这里
+            w.Write(Partial); w.Write(UnreadableDirs); w.Write(PathTooLongCount);
             for (int i = 0; i < Cat.Count; i++) { w.Write(CatBytes[i]); w.Write(CatCounts[i]); }
 
             w.Write(Dirs.Count);
@@ -169,6 +180,9 @@ public sealed class Snapshot
                 TempBytes = header.TempBytes,
                 ShadowUsedBytes = header.ShadowUsedBytes,
                 HardlinkBytes = header.HardlinkBytes,
+                Partial = header.Partial,
+                UnreadableDirs = header.UnreadableDirs,
+                PathTooLongCount = header.PathTooLongCount,
             };
             for (int i = 0; i < Cat.Count; i++) { s.CatBytes[i] = r.ReadInt64(); s.CatCounts[i] = r.ReadInt64(); }
             int nd = r.ReadInt32();
@@ -262,6 +276,10 @@ public sealed class SnapHeader
     public long TempBytes;
     public long ShadowUsedBytes;
     public long HardlinkBytes;
+    /// <summary>本次扫描有跳过（无权限目录 / 超长路径），文件明细偏小。</summary>
+    public bool Partial;
+    public int UnreadableDirs;
+    public int PathTooLongCount;
 
     public double UsedRatio => TotalBytes > 0 ? (double)UsedBytes / TotalBytes : 0;
 
@@ -282,7 +300,7 @@ public sealed class SnapHeader
         if (reader.ReadUInt32() != Snapshot.Magic) return null;
         int version = reader.ReadInt32();
         if (version > Snapshot.Version) return null;
-        return new SnapHeader
+        var head = new SnapHeader
         {
             Version = version,
             Time = new DateTimeOffset(reader.ReadInt64(), TimeSpan.Zero),
@@ -299,5 +317,13 @@ public sealed class SnapHeader
             ShadowUsedBytes = reader.ReadInt64(),
             HardlinkBytes = reader.ReadInt64(),
         };
+        // v5 起头部区多三个标量，必须与 Save 的位置保持一致
+        if (version >= 5)
+        {
+            head.Partial = reader.ReadBoolean();
+            head.UnreadableDirs = reader.ReadInt32();
+            head.PathTooLongCount = reader.ReadInt32();
+        }
+        return head;
     }
 }

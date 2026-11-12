@@ -18,7 +18,7 @@ public static class Monitor
 
     public static volatile bool Scanning;
     /// <summary>状态阶段（用于给状态栏圆点上色，避免用文案做字符串比较）。</summary>
-    public enum StatusKind { Never = 0, Working = 1, Done = 2, Failed = 3 }
+    public enum StatusKind { Never = 0, Working = 1, Done = 2, Failed = 3, Warn = 4 }
 
     public static volatile string Status = Loc.T("hero.neverScanned");
     public static volatile StatusKind StatusKindNow = StatusKind.Never;
@@ -54,6 +54,8 @@ public static class Monitor
         // 今天已经有快照 → 视为"今天已自动扫描过"，避免每次启动都重扫一遍全盘
         if (Latest != null && !Scanning) _lastAutoScanDate = Latest.Time.ToLocalTime().Date;
         ScheduleNext();
+        // 心跳固定 1 秒：探针只调 GetDiskFreeSpaceEx（微秒级），不做目录遍历；
+        // 原来那个 FreeSpacePollSeconds=30 的配置项从未被读取，已删除（2026-11-12 死字段清理）。
         _timer = new System.Threading.Timer(_ => Tick(), null, 1000, 1000);
     }
 
@@ -144,17 +146,24 @@ public static class Monitor
 
                 var res = Scanner.Scan(opt, CancellationToken.None);
 
-                if (!res.IsComplete)
+                // 不管扫描完不完整，卷级空间先刷进共享状态：
+                // 否则只要扫描被判定为「不完整」，界面就会一直停在旧快照的数字上（用户看到的就是「扫了也没变」）。
+                if (res.TotalBytes > 0)
                 {
-                    string reason = res.Error.Length > 0
-                        ? res.Error
-                        : $"unreadable directories: {res.UnreadableDirs}, overlong paths: {res.PathTooLongCount}";
-                    Status = Loc.F("status.doneWithWarn", reason);
+                    TotalBytes = res.TotalBytes;
+                    FreeBytes = res.FreeBytes;
+                    OnStateChanged?.Invoke();
+                }
+
+                // 只有「连卷信息都读不到」才算真正失败：这种情况不落盘。
+                if (res.IsFatal)
+                {
+                    Status = Loc.F("status.scanFailed", res.Error.Length > 0 ? res.Error : Loc.T("status.scanFailedNoInfo"));
                     StatusKindNow = StatusKind.Failed;
                     // Avoid retrying every second after the daily scan time has passed.
                     _lastAutoScanDate = DateTime.Now.Date;
                     ScheduleNext();
-                    return; // Never persist partial data or derive alerts from it.
+                    return;
                 }
 
                 Status = Loc.T("status.readingSys");
@@ -175,13 +184,17 @@ public static class Monitor
 
                 LastScanTime = snap.Time;
                 LastScanMs = durationMs;
-                Status = scanError.Length > 0 ? Loc.F("status.doneWithWarn", scanError) : Loc.T("status.done");
-                StatusKindNow = StatusKind.Done;
+                // 有跳过目录（无权限 / 超长路径）不是失败：卷级容量准确，只是文件明细偏小。
+                // 这时仍然落盘并刷新界面，但用黄色标注，且不弹气泡（避免误报「空间突然变化」）。
+                Status = snap.Partial
+                    ? Loc.F("status.donePartial", snap.UnreadableDirs, snap.PathTooLongCount)
+                    : scanError.Length > 0 ? Loc.F("status.doneWithWarn", scanError) : Loc.T("status.done");
+                StatusKindNow = snap.Partial ? StatusKind.Warn : StatusKind.Done;
                 _lastAutoScanDate = snap.Time.ToLocalTime().Date;
                 ScheduleNext();
 
                 ReleaseMemory();          // Aggressive 收集：把空闲段还给系统
-                RefreshDerived(fireAlerts: true, fresh: snap);
+                RefreshDerived(fireAlerts: !snap.Partial, fresh: snap);
                 // 工作集回收不在这里做：紧接着 UI 要重绘一遍，现在 trim 等于白做。
                 // 由 MainWindow 在扫描结束后隔两次心跳（约 2s，重绘已完成）再调用 TrimWorkingSet()。
             }

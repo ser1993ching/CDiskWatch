@@ -225,10 +225,16 @@ public static class ReportJsonBuilder
     }
 
     /// <summary>报告同时给人看和给脚本看，中文不转义成 Unicode 转义序列。</summary>
+    /// <remarks>resolver 就是源生成的 <see cref="JsonCtx"/>（无反射），因此裁剪发布同样安全；
+    /// 分析器无法识别这一点会报 IL2026，这里显式豁免。</remarks>
     static readonly JsonSerializerOptions Opt = new(JsonCtx.Default.Options)
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        TypeInfoResolver = JsonCtx.Default,   // 仍走源生成的元数据（无反射）
     };
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(
+        "Trimming", "IL2026",
+        Justification = "TypeInfoResolver is the source-generated JsonCtx (no reflection), so trimming is safe.")]
     public static string Serialize(ReportJson r) => JsonSerializer.Serialize(r, Opt);
 }

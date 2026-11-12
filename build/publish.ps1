@@ -15,6 +15,12 @@ $proj = Join-Path $root "CDiskWatch\CDiskWatch.csproj"
 $tmp = Join-Path $env:TEMP "CDiskWatch_publish"
 $out = Join-Path $root "publish\win-x64"
 
+Write-Host "== 0/4 结束正在运行的实例 ==" -ForegroundColor Cyan
+Get-Process CDiskWatch -ErrorAction SilentlyContinue | ForEach-Object {
+    try { $_.Kill(); $_.WaitForExit(5000) } catch { }
+}
+Start-Sleep -Milliseconds 300
+
 Write-Host "== 1/4 构建 Release ==" -ForegroundColor Cyan
 dotnet build $proj -c Release | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "构建失败" }

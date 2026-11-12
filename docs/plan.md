@@ -10,7 +10,7 @@
 
 | 项 | v1 方案 | **最终决策** | 落地情况 |
 |---|---|---|---|
-| UI 框架 | WinForms | ❌ → **纯 Win32 自绘** | ✅ `MainWindow.cs` 7 页签 GDI 自绘 |
+| UI 框架 | WinForms | ❌ → **纯 Win32 自绘** | ✅ `MainWindow.cs` 8 页签 GDI 自绘 |
 | 管理员权限 | 可选 | ✅ 需要（卷影副本/系统文件归因） | ✅ 运行时 `ShellExecuteEx("runas")` 自提权 |
 | 历史基线 | 等明天自然产生 | ✅ **立即跑一次全盘做基线** | ✅ `history\baseline.snap` |
 | 托盘显示 | GB 数字 | ✅ **GB + 百分比** | ✅ `C: 可用 93.50 GB · 31%` |
@@ -53,7 +53,7 @@
 CDiskWatch.exe（单进程单 exe，12 MB）
 ├─ Program.cs      单实例 Mutex / 自提权 / 消息循环 / CLI(--scan --report --baseline --selftest)
 ├─ Tray.cs         托盘图标（按占用率变色）+ 气泡 + 右键菜单
-├─ MainWindow.cs   7 页签自绘面板（双缓冲 GDI）
+├─ MainWindow.cs   8 页签自绘面板（双缓冲 GDI）
 ├─ Monitor.cs      调度：30s 空间探针 / 每日 02:00 全盘扫描 / 派生数据
 └─ 核心层（无 UI 依赖，CLI 与托盘共用）
    ├─ Scanner.cs      原生 FindFirstFile/FindNextFile 全盘扫描器（每文件零分配）
@@ -172,7 +172,7 @@ CDiskWatch.exe（单进程单 exe，12 MB）
 | M1 | 原生全盘扫描器 + 分类 + 系统占用 + CLI 报告 | ✅ |
 | M2 | 快照仓库 + 基线 + 日对比（目录/类别/文件三级） | ✅ |
 | M3 | 预警引擎 + 删除建议引擎 | ✅ |
-| M4 | 托盘 + 7 页签自绘面板（含 Top 100 大文件 / Top 20 增量文件夹） | ✅ |
+| M4 | 托盘 + 8 页签自绘面板（含 Top 100 大文件 / Top 20 增量文件夹） | ✅ |
 | M5 | 只读守卫、自检、图标、单文件发布、截图核验 | ✅ |
 | M6（可选） | USN 增量追踪（秒级探测） | ⏸ 未做（12~40 秒的日扫描已足够） |
 

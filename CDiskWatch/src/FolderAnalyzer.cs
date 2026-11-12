@@ -28,7 +28,7 @@ public static class FolderAnalyzer
     };
     static readonly HashSet<string> ChatFolderNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "WeChat Files", "xwechat_files", "Tencent Files", "QQ Files", "微信 Files"
+        "WeChat Files", "xwechat_files", "Tencent Files", "QQ Files", "微信 Files"  // lang:keep 磁盘上的真实目录名
     };
 
     public static FolderRisk RiskOf(FolderKind kind) => kind switch

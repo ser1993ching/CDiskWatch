@@ -121,7 +121,11 @@ def main():
                     unknown.append(rel + ': ' + k)
             if os.path.normpath(rel) in SKIP_CJK:
                 continue
+            lines = src.split(chr(10))
             for ln, text in literals(src):
+                # 行尾标记 lang:keep = 这是「磁盘上的真实文件夹名」等数据，不是界面文案
+                if ln - 1 < len(lines) and 'lang:keep' in lines[ln - 1]:
+                    continue
                 if is_cjk(text):
                     cjk_leaks.append('%s:%d  %s' % (rel, ln, text))
 
